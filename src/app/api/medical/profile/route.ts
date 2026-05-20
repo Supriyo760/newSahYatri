@@ -1,0 +1,107 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { db } from '@/db';
+import { medicalProfiles } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { encryptField, decryptField } from '@/lib/medical/encryption';
+import { z } from 'zod';
+
+const medicalSchema = z.object({
+  bloodType: z.string().optional(),
+  conditions: z.array(z.object({
+    name: z.string(),
+    severity: z.enum(['mild', 'moderate', 'severe']),
+    notes: z.string().optional(),
+  })).default([]),
+  medications: z.array(z.object({
+    name: z.string(),
+    dosage: z.string(),
+    schedule: z.string(),
+    notes: z.string().optional(),
+  })).default([]),
+  allergies: z.array(z.object({
+    allergen: z.string(),
+    severity: z.enum(['mild', 'moderate', 'severe', 'anaphylactic']),
+    response: z.string(),
+    hasEpipen: z.boolean().default(false),
+  })).default([]),
+  emergencyContacts: z.array(z.object({
+    name: z.string(),
+    phone: z.string(),
+    relationship: z.string(),
+    isPrimary: z.boolean().default(false),
+  })).min(1),
+  firstAidNotes: z.string().optional(),
+  shareWithGroup: z.boolean().default(false),
+});
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const data = medicalSchema.parse(body);
+
+    // Derive non-sensitive categories for group display
+    const conditionCategories = data.conditions.map(c => c.name.toLowerCase());
+    data.allergies.forEach(a => {
+      if (a.severity === 'anaphylactic') conditionCategories.push(`severe-${a.allergen}-allergy`);
+    });
+
+    await db.insert(medicalProfiles).values({
+      userId: session.user.id,
+      bloodType: data.bloodType,
+      conditionsEncrypted: encryptField(data.conditions),
+      medicationsEncrypted: encryptField(data.medications),
+      allergiesEncrypted: encryptField(data.allergies),
+      emergencyContactsEncrypted: encryptField(data.emergencyContacts),
+      firstAidNotesEncrypted: data.firstAidNotes ? encryptField(data.firstAidNotes) : null,
+      conditionCategories,
+      shareWithGroup: data.shareWithGroup,
+    }).onConflictDoUpdate({
+      target: medicalProfiles.userId,
+      set: {
+        conditionsEncrypted: encryptField(data.conditions),
+        medicationsEncrypted: encryptField(data.medications),
+        allergiesEncrypted: encryptField(data.allergies),
+        emergencyContactsEncrypted: encryptField(data.emergencyContacts),
+        firstAidNotesEncrypted: data.firstAidNotes ? encryptField(data.firstAidNotes) : null,
+        conditionCategories,
+        shareWithGroup: data.shareWithGroup,
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({ data: { success: true } }, { status: 200 });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.errors }, { status: 400 });
+    }
+    console.error('Failed to save medical profile:', err);
+    return NextResponse.json({ error: 'Failed to save medical profile' }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const [profile] = await db.select().from(medicalProfiles)
+    .where(eq(medicalProfiles.userId, session.user.id)).limit(1);
+
+  if (!profile) return NextResponse.json({ data: null });
+
+  // Decrypt only for the profile owner
+  return NextResponse.json({
+    data: {
+      bloodType: profile.bloodType,
+      conditions: decryptField(profile.conditionsEncrypted),
+      medications: decryptField(profile.medicationsEncrypted),
+      allergies: decryptField(profile.allergiesEncrypted),
+      emergencyContacts: decryptField(profile.emergencyContactsEncrypted),
+      firstAidNotes: decryptField(profile.firstAidNotesEncrypted),
+      shareWithGroup: profile.shareWithGroup,
+    },
+  });
+}
