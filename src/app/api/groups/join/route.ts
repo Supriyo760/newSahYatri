@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: group, message: 'Successfully joined group' }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 400 });
+      return NextResponse.json({ error: err.issues }, { status: 400 });
     }
     console.error('Join group error:', err);
     return NextResponse.json({ error: 'Failed to join group' }, { status: 500 });

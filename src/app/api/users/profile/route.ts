@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 400 });
+      return NextResponse.json({ error: err.issues }, { status: 400 });
     }
     return NextResponse.json({ error: 'Profile update failed' }, { status: 500 });
   }

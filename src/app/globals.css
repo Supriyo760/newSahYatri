@@ -1,26 +1,108 @@
 @import "tailwindcss";
 
+@theme {
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+
+  --color-primary: #8f361d;
+  --color-primary-container: #af4d32;
+  --color-secondary: #865300;
+  --color-secondary-container: #fdb55c;
+  --color-tertiary: #435848;
+  --color-tertiary-container: #5b705f;
+  --color-background: #fbf9f4;
+  --color-surface: #fbf9f4;
+  --color-surface-dim: #dbdad5;
+  --color-surface-container: #f0eee9;
+  --color-surface-container-high: #eae8e3;
+  --color-surface-container-highest: #e4e2dd;
+  --color-surface-container-low: #f5f3ee;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #1b1c19;
+  --color-on-surface-variant: #56423d;
+  --color-outline: #89726c;
+  --color-outline-variant: #ddc0b9;
+
+  --radius-soft-sm: 0.125rem;
+  --radius-soft: 0.25rem;
+  --radius-soft-md: 0.375rem;
+  --radius-soft-lg: 0.5rem;
+  --radius-soft-xl: 0.75rem;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #fbf9f4;
+  --foreground: #1b1c19;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
+
+/* Typography Utility Classes for SahYatri Journal */
+.font-journal-headline {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.font-journal-body {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.font-journal-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+}
+
+/* Tactile shadows */
+.shadow-tactile {
+  box-shadow: 0 10px 30px -5px rgba(143, 54, 29, 0.08), 0 4px 12px -2px rgba(86, 66, 61, 0.04);
+}
+
+.shadow-tactile-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shadow-tactile-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -5px rgba(143, 54, 29, 0.12), 0 8px 24px -2px rgba(86, 66, 61, 0.06);
+}
+
+/* Stitch design classes */
+.paper-texture {
+  background-color: #fbf9f4;
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDHtpgIepDaFyDxtxatVocav4xtUhRY5OXZ7LRG_AErFiLQ6VRMVnMKf5LuHH_NP0t09lNrwx0o5UFICIeX6h67S7jS93ROl14nkt31DjloKVS98F47X685HpJLl4MR1aKokPj8Nd9usc2HVt-XzCaDt0yeDS3K5wlnAYxrMqPqV9OGIJvyBu9Cy5ogtQboU_PjmfgYrXModHa3662i4j3P-nZ8ZJqz8gNb4dPhiMRudNBi1qj46Y8EETJEjKoP0WiNaxOEVe1Buy0);
+  background-blend-mode: multiply;
+}
+
+.journal-shadow {
+  box-shadow: 0 10px 30px -5px rgba(143, 54, 29, 0.05), 0 20px 40px -10px rgba(134, 83, 0, 0.03);
+}
+
+.flip-transition {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flipped {
+  transform: rotateY(180deg);
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+

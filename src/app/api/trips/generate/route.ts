@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
       interests: profile?.interests || [],
     });
 
+    // Delete any existing trips for this group to support regenerating/changing location
+    await db.delete(trips).where(eq(trips.groupId, data.groupId));
+
     // Save trip to DB
     const [trip] = await db.insert(trips).values({
       groupId: data.groupId,
@@ -107,8 +110,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ data: { tripId: trip.id } }, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Trip generation error:', err);
-    return NextResponse.json({ error: 'Trip generation failed' }, { status: 500 });
+    return NextResponse.json({ error: `Trip generation failed: ${err?.message || err}` }, { status: 500 });
   }
 }

@@ -14,10 +14,14 @@ export function encrypt(data: object | string): string {
 export function decrypt<T>(ciphertext: string): T {
   const bytes = CryptoJS.AES.decrypt(ciphertext, KEY);
   const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-  return JSON.parse(decrypted) as T;
+  try {
+    return JSON.parse(decrypted) as T;
+  } catch {
+    return decrypted as unknown as T;
+  }
 }
 
-export function encryptField(value: object | null | undefined): string | null {
+export function encryptField(value: object | string | null | undefined): string | null {
   if (!value) return null;
   return encrypt(value);
 }

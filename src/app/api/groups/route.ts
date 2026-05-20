@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: group }, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 400 });
+      return NextResponse.json({ error: err.issues }, { status: 400 });
     }
     return NextResponse.json({ error: 'Group creation failed' }, { status: 500 });
   }

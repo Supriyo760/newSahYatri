@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
         budgetLevel: personalityProfiles.budgetLevel,
         foodPreferences: personalityProfiles.foodPreferences,
         embeddingVector: personalityProfiles.embeddingVector,
+        interests: personalityProfiles.interests,
         name: users.name,
         avatarUrl: users.avatarUrl,
         age: users.age,

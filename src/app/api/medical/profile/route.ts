@@ -30,7 +30,7 @@ const medicalSchema = z.object({
     phone: z.string(),
     relationship: z.string(),
     isPrimary: z.boolean().default(false),
-  })).min(1),
+  })).default([]),
   firstAidNotes: z.string().optional(),
   shareWithGroup: z.boolean().default(false),
 });
@@ -76,10 +76,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.errors }, { status: 400 });
+      return NextResponse.json({ error: err.issues }, { status: 400 });
     }
+    const message = err instanceof Error ? err.message : 'Unknown server error';
     console.error('Failed to save medical profile:', err);
-    return NextResponse.json({ error: 'Failed to save medical profile' }, { status: 500 });
+    return NextResponse.json({ error: `Failed to save medical profile: ${message}` }, { status: 500 });
   }
 }
 
