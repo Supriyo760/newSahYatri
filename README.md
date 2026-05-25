@@ -1,21 +1,21 @@
-# SahYatri: AI-Powered Intelligent Travel Companion Network 🌍✈️
+# SahYatri: AI-Powered Intelligent Travel Companion Network 
 
 SahYatri is a next-generation travel platform built to revolutionize how people plan trips, find travel companions, and manage their safety abroad. Built with a robust **Next.js** monolith and a **Python FastAPI** AI microservice, SahYatri leverages advanced machine learning (K-Means Clustering, Random Forests, XGBoost) to form highly compatible travel groups, dynamically replan itineraries, and ensure medical safety.
 
 ---
 
-## 🚀 Features
+##  Features
 
-- **🧠 AI Matchmaking**: Forms optimal 3-5 person travel groups based on Big Five personality traits, travel styles, and budget preferences using K-Means clustering.
-- **🗺️ Dynamic Replanner**: Automatically adjusts itineraries in real-time in response to severe weather, heavy traffic, or disruptive local events.
-- **🛡️ Medical Risk Engine**: Proactively flags medical incompatibilities (e.g., altitude sickness risk vs. destination) using a Random Forest model, and provides interactive first-aid decision trees.
-- **💎 Hidden Gem Discovery**: XGBoost-powered algorithm that scores locations based on authenticity, local endorsements, and low tourist density.
-- **💬 Real-Time Chat & Sentiment**: Socket.io powered anonymous pre-match chatting with live NLP sentiment analysis to ensure safe interactions.
-- **💳 Freemium Tier & Payments**: Stripe and Razorpay integrations for seamless premium upgrades (unlocking AI Chatbots and advanced gem insights).
+- ** AI Matchmaking**: Forms optimal 3-5 person travel groups based on Big Five personality traits, travel styles, and budget preferences using K-Means clustering.
+- ** Dynamic Replanner**: Automatically adjusts itineraries in real-time in response to severe weather, heavy traffic, or disruptive local events.
+- ** Medical Risk Engine**: Proactively flags medical incompatibilities (e.g., altitude sickness risk vs. destination) using a Random Forest model, and provides interactive first-aid decision trees.
+- ** Hidden Gem Discovery**: XGBoost-powered algorithm that scores locations based on authenticity, local endorsements, and low tourist density.
+- ** Real-Time Chat & Sentiment**: Socket.io powered anonymous pre-match chatting with live NLP sentiment analysis to ensure safe interactions.
+- ** Freemium Tier & Payments**: Stripe and Razorpay integrations for seamless premium upgrades (unlocking AI Chatbots and advanced gem insights).
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 SahYatri uses a hybrid architecture:
 1. **Frontend / Core Backend**: [Next.js 15 (App Router)](https://nextjs.org/) with React 19. Handles UI, auth, database ORM (Drizzle), and core business logic.
@@ -26,7 +26,7 @@ Read the detailed [Technical Architecture Document (ARCHITECTURE.md)](./ARCHITEC
 
 ---
 
-## 💻 Local Deployment Instructions
+##  Local Deployment Instructions
 
 The easiest way to run the entire stack (Next.js, FastAPI, and PostgreSQL) locally is by using **Docker Compose**.
 
@@ -79,7 +79,7 @@ docker-compose down
 
 ---
 
-## 🛠️ Manual Development Mode (Without Docker)
+##  Manual Development Mode (Without Docker)
 
 If you prefer to run the services natively for hot-reloading and development:
 
@@ -102,7 +102,7 @@ npm run dev
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 The platform includes automated test suites for both services:
 
@@ -123,7 +123,7 @@ pytest
 
 ---
 
-## 📄 Documentation Deliverables
+##  Documentation Deliverables
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Full system design.
 - [MEDICAL_HANDBOOK.md](./MEDICAL_HANDBOOK.md) - Standard Operating Procedures for medical features.
