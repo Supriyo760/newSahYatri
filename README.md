@@ -6,12 +6,12 @@ SahYatri is a next-generation travel platform built to revolutionize how people 
 
 ##  Features
 
-- ** AI Matchmaking**: Forms optimal 3-5 person travel groups based on Big Five personality traits, travel styles, and budget preferences using K-Means clustering.
-- ** Dynamic Replanner**: Automatically adjusts itineraries in real-time in response to severe weather, heavy traffic, or disruptive local events.
-- ** Medical Risk Engine**: Proactively flags medical incompatibilities (e.g., altitude sickness risk vs. destination) using a Random Forest model, and provides interactive first-aid decision trees.
-- ** Hidden Gem Discovery**: XGBoost-powered algorithm that scores locations based on authenticity, local endorsements, and low tourist density.
-- ** Real-Time Chat & Sentiment**: Socket.io powered anonymous pre-match chatting with live NLP sentiment analysis to ensure safe interactions.
-- ** Freemium Tier & Payments**: Stripe and Razorpay integrations for seamless premium upgrades (unlocking AI Chatbots and advanced gem insights).
+- **AI Matchmaking**: Forms optimal 3-5 person travel groups based on Big Five personality traits, travel styles, and budget preferences using K-Means clustering.
+- **Dynamic Replanner**: Automatically adjusts itineraries in real-time in response to severe weather, heavy traffic, or disruptive local events.
+- **Medical Risk Engine**: Proactively flags medical incompatibilities (e.g., altitude sickness risk vs. destination) using a Random Forest model, and provides interactive first-aid decision trees.
+- **Hidden Gem Discovery**: XGBoost-powered algorithm that scores locations based on authenticity, local endorsements, and low tourist density.
+- **Real-Time Chat & Sentiment**: Socket.io powered anonymous pre-match chatting with live NLP sentiment analysis to ensure safe interactions.
+- **Freemium Tier & Payments**: Stripe and Razorpay integrations for seamless premium upgrades (unlocking AI Chatbots and advanced gem insights).
 
 ---
 
