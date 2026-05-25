@@ -53,6 +53,7 @@ export const users = pgTable('users', {
   authProvider: authProviderEnum('auth_provider').default('credentials'),
   isVerified: boolean('is_verified').default(false),
   isOnboarded: boolean('is_onboarded').default(false),
+  role: varchar('role', { length: 20 }).default('free'), // 'free' | 'premium'
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (t) => ({
@@ -275,6 +276,22 @@ export const expenses = pgTable('expenses', {
   splits: jsonb('splits'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// ─── EXPENSE SPLITS ───────────────────────────────────────────────────────────
+
+export const expenseSplits = pgTable('expense_splits', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  expenseId: uuid('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  amountOwed: real('amount_owed').notNull(),
+  hasPaid: boolean('has_paid').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  expenseIdx: index('expense_splits_expense_idx').on(t.expenseId),
+  tripIdx: index('expense_splits_trip_idx').on(t.tripId),
+  userIdx: index('expense_splits_user_idx').on(t.userId),
+}));
 
 // ─── RESTAURANTS ──────────────────────────────────────────────────────────────
 // Local cache of Google Places data to reduce API calls

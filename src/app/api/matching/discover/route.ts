@@ -49,11 +49,44 @@ export async function GET(req: NextRequest) {
         )
       );
 
-    // 3. Compute compatibility for all pairs
+    // 3. Compute compatibility for all pairs and query AI microservice
     const matches = [];
     for (const other of otherProfiles) {
       const matchDetails = await getCompatibility(myProfile as any, other as any);
-      if (matchDetails.overallScore >= 60) {
+      
+      // Call Python FastAPI for conflict prediction
+      let conflictProbability = 0;
+      try {
+        const mlRes = await fetch('http://127.0.0.1:8000/api/ml/matching/conflict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_a_features: myProfile.embeddingVector || [],
+            user_b_features: other.embeddingVector || [],
+          }),
+        });
+        
+        if (mlRes.ok) {
+          const mlData = await mlRes.json();
+          conflictProbability = mlData.conflict_probability;
+        }
+      } catch (err) {
+        console.warn('FastAPI unavailable, using fallback conflict probability');
+        conflictProbability = 0.5;
+      }
+
+      // 4. Integrate Trust Scoring (mocked base score + ML factor)
+      // and Medical factor (10% weight as per report)
+      const trustScore = 80; // Placeholder for DB-backed verified trips
+      const medicalFactor = 100; // Placeholder for DB-backed medical compatibility
+      
+      const aiAdjustedScore = Math.round(
+        (matchDetails.overallScore * 0.8) + // Base compat
+        (medicalFactor * 0.1) + // Medical weight
+        ((1 - conflictProbability) * 10) // ML Conflict penalty
+      );
+
+      if (aiAdjustedScore >= 60) {
         matches.push({
           user: {
             id: other.userId,
@@ -65,7 +98,12 @@ export async function GET(req: NextRequest) {
             travelStyle: other.travelStyle,
             interests: other.interests || [],
           },
-          compatibility: matchDetails,
+          compatibility: {
+            ...matchDetails,
+            overallScore: aiAdjustedScore,
+            conflictRisk: conflictProbability,
+            trustScore: trustScore,
+          },
         });
       }
     }

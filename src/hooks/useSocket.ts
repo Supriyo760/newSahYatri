@@ -7,15 +7,15 @@ interface UseSocketProps {
 }
 
 export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Connect to server (same origin)
-    const socket = io();
-    socketRef.current = socket;
+    const socketInstance = io();
+    setSocket(socketInstance);
 
-    socket.on('connect', () => {
+    socketInstance.on('connect', () => {
       setIsConnected(true);
       console.log('Socket client connected:', socket.id);
 
@@ -26,18 +26,18 @@ export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
       }
     });
 
-    socket.on('disconnect', () => {
+    socketInstance.on('disconnect', () => {
       setIsConnected(false);
       console.log('Socket client disconnected');
     });
 
     return () => {
-      socket.disconnect();
+      socketInstance.disconnect();
     };
   }, [groupId, chatId]);
 
   return {
-    socket: socketRef.current,
+    socket,
     isConnected,
   };
 }

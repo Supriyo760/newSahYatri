@@ -117,11 +117,9 @@ export async function searchPlace(query: string): Promise<PlaceDetails | null> {
   };
 }
 
-export async function findNearbyHospitals(lat: number, lng: number, radius = 5000) {
+export async function findNearbyMedicalFacilities(lat: number, lng: number, type: 'hospital' | 'pharmacy' | 'clinic' = 'hospital', radius = 5000) {
   if (!MAPS_API_KEY || MAPS_API_KEY.includes('Placeholder')) {
     try {
-      // Calculate a bounding box centered on lat/lng (roughly 5km)
-      // 1 degree is ~111km, so 5km is ~0.045 degrees
       const delta = 0.045;
       const minLng = lng - delta;
       const maxLng = lng + delta;
@@ -130,7 +128,7 @@ export async function findNearbyHospitals(lat: number, lng: number, radius = 500
 
       const params = new URLSearchParams({
         format: 'json',
-        q: 'hospital',
+        q: type,
         viewbox: `${minLng},${maxLat},${maxLng},${minLat}`,
         bounded: '1',
         limit: '5'
@@ -148,28 +146,21 @@ export async function findNearbyHospitals(lat: number, lng: number, radius = 500
           name: h.name || h.display_name.split(',')[0],
           vicinity: h.display_name,
           geometry: { location: { lat: parseFloat(h.lat), lng: parseFloat(h.lon) } },
-          place_id: `osm_hosp_${h.place_id}`,
+          place_id: `osm_${type}_${h.place_id}`,
           opening_hours: { open_now: true }
         }));
       }
     } catch (err) {
-      console.error('Nominatim hospital search error:', err);
+      console.error(`Nominatim ${type} search error:`, err);
     }
 
     // Default static fallback if API fails
     return [
       {
-        name: 'Local Community Hospital',
-        vicinity: `Emergency Department near ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        name: `Local Community ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+        vicinity: `Facility near ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
         geometry: { location: { lat: lat + 0.003, lng: lng - 0.002 } },
-        place_id: 'mock_hosp_def_1',
-        opening_hours: { open_now: true }
-      },
-      {
-        name: 'Red Cross Medical & Urgent Care Center',
-        vicinity: 'Central District Medical Zone',
-        geometry: { location: { lat: lat - 0.004, lng: lng + 0.004 } },
-        place_id: 'mock_hosp_def_2',
+        place_id: `mock_${type}_def_1`,
         opening_hours: { open_now: true }
       }
     ];
@@ -178,13 +169,50 @@ export async function findNearbyHospitals(lat: number, lng: number, radius = 500
   const params = new URLSearchParams({
     location: `${lat},${lng}`,
     radius: radius.toString(),
-    type: 'hospital',
+    type: type,
     key: MAPS_API_KEY,
   });
 
   const res = await fetch(`${BASE}/place/nearbysearch/json?${params}`);
   const data = await res.json();
   return data.results?.slice(0, 5) || [];
+}
+
+export async function findNearbyHospitals(lat: number, lng: number, radius = 5000) {
+  return findNearbyMedicalFacilities(lat, lng, 'hospital', radius);
+}
+
+export async function findPublicToilets(lat: number, lng: number, radius = 2000) {
+  if (!MAPS_API_KEY || MAPS_API_KEY.includes('Placeholder')) {
+    // Fallback Mock
+    return [
+      {
+        name: 'Public Restroom - Park',
+        lat: lat + 0.001,
+        lng: lng + 0.001,
+        isOpen: true,
+        type: 'public_toilet'
+      }
+    ];
+  }
+
+  const params = new URLSearchParams({
+    location: `${lat},${lng}`,
+    radius: radius.toString(),
+    keyword: 'public toilet',
+    key: MAPS_API_KEY,
+  });
+
+  const res = await fetch(`${BASE}/place/nearbysearch/json?${params}`);
+  const data = await res.json();
+  
+  return data.results?.slice(0, 5).map((r: any) => ({
+    name: r.name,
+    lat: r.geometry.location.lat,
+    lng: r.geometry.location.lng,
+    isOpen: r.opening_hours?.open_now !== false,
+    type: 'public_toilet'
+  })) || [];
 }
 
 export async function getDirections(

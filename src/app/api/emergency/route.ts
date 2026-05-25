@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, groupMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { findNearbyHospitals } from '@/services/google-maps';
+import { findNearbyMedicalFacilities, findNearbyHospitals } from '@/services/google-maps';
 
 // Pre-written first aid protocols per condition category
 const FIRST_AID_PROTOCOLS: Record<string, string[]> = {
@@ -45,8 +45,12 @@ export async function POST(req: NextRequest) {
   try {
     const { lat, lng, groupId } = await req.json();
 
-    // Find nearby hospitals
-    const hospitals = await findNearbyHospitals(lat, lng, 10000);
+    // Find nearby medical facilities
+    const [hospitals, pharmacies, clinics] = await Promise.all([
+      findNearbyMedicalFacilities(lat, lng, 'hospital', 10000),
+      findNearbyMedicalFacilities(lat, lng, 'pharmacy', 5000),
+      findNearbyMedicalFacilities(lat, lng, 'clinic', 5000),
+    ]);
 
     // Get consenting group members' condition categories
     const members = groupId ? await db
@@ -70,16 +74,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const formatFacility = (f: any) => ({
+      name: f.name,
+      address: f.vicinity,
+      lat: f.geometry.location.lat,
+      lng: f.geometry.location.lng,
+      placeId: f.place_id,
+      isOpen: f.opening_hours?.open_now,
+    });
+
     return NextResponse.json({
       data: {
-        hospitals: hospitals.slice(0, 3).map((h: any) => ({
-          name: h.name,
-          address: h.vicinity,
-          lat: h.geometry.location.lat,
-          lng: h.geometry.location.lng,
-          placeId: h.place_id,
-          isOpen: h.opening_hours?.open_now,
-        })),
+        hospitals: hospitals.slice(0, 3).map(formatFacility),
+        pharmacies: pharmacies.slice(0, 3).map(formatFacility),
+        clinics: clinics.slice(0, 3).map(formatFacility),
         firstAidProtocols: protocols,
         emergencyNumbers: {
           india: '112',
