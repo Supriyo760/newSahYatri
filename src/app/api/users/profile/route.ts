@@ -77,7 +77,22 @@ export async function GET() {
       .where(eq(personalityProfiles.userId, session.user.id))
       .limit(1);
 
-    return NextResponse.json({ data: profile || null });
+    const [user] = await db
+      .select({
+        avatarUrl: users.avatarUrl,
+        name: users.name
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    return NextResponse.json({
+      data: {
+        ...(profile || {}),
+        avatarUrl: user?.avatarUrl || null,
+        name: user?.name || null
+      }
+    });
   } catch (err) {
     return NextResponse.json({ error: 'Failed to retrieve profile' }, { status: 500 });
   }

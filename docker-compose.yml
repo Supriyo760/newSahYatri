@@ -5,10 +5,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgres://user:password@db:5432/sahyatri
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - AUTH_TRUST_HOST=true
+      - AUTH_SECRET=9210c4f8d9b2a6f1e8a3c5d7b6a9e1f8
+      - NEXTAUTH_SECRET=9210c4f8d9b2a6f1e8a3c5d7b6a9e1f8
     depends_on:
       - db
       - ml-service

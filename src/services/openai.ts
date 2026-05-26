@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+const getOpenAIClient = () => {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || 'dummy-key-for-build',
+  });
+};
 
 export interface GeneratedItineraryItem {
   day: number;
@@ -113,6 +115,27 @@ async function fetchFallbackPOIs(dest: string, lat: number, lon: number): Promis
   }
 
   if (attractions.length < 3) {
+    // Try regional temples without bounded box
+    await delay(1000);
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        q: `${dest} temple`,
+        limit: '10'
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': 'SahYatriApp/1.0' }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        attractions = [...attractions, ...data];
+      }
+    } catch (err) {
+      console.error('Fallback temple search failed:', err);
+    }
+  }
+
+  if (attractions.length < 3) {
     // Try tourist without bounded box
     await delay(1000);
     try {
@@ -140,6 +163,46 @@ async function fetchFallbackPOIs(dest: string, lat: number, lon: number): Promis
     await delay(1000);
     const cafes = await fetchPOI('cafe', lat, lon);
     food = [...food, ...cafes];
+  }
+
+  if (food.length < 3) {
+    // Try local hotels without bounded box
+    await delay(1000);
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        q: `${dest} hotel`,
+        limit: '10'
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': 'SahYatriApp/1.0' }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        food = [...food, ...data];
+      }
+    } catch (err) {
+      console.error('Fallback hotel search failed:', err);
+    }
+  }
+
+  if (food.length < 3) {
+    // Try general food without bounded box
+    await delay(1000);
+    try {
+      const params = new URLSearchParams({
+        format: 'json',
+        q: `${dest} food`,
+        limit: '10'
+      });
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': 'SahYatriApp/1.0' }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        food = [...food, ...data];
+      }
+    } catch {}
   }
 
   // De-duplicate by name or display_name
@@ -871,6 +934,7 @@ Rules:
 }
     `.trim();
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [

@@ -4,12 +4,89 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavBar from '@/components/BottomNavBar';
+import { useSession } from 'next-auth/react';
 
 export default function Onboarding() {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [activeTab, setActiveTab] = useState<'profile' | 'medical'>('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Error: Profile image must be smaller than 5MB.');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setMessage('');
+
+    try {
+      const base64String = await resizeImage(file);
+
+      const res = await fetch('/api/users/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: base64String }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload avatar');
+      }
+
+      setAvatarUrl(base64String);
+      await updateSession({ image: base64String });
+      setMessage('Profile image updated successfully!');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(`Error: ${errMsg}`);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   // Profile Form State
   const [profileForm, setProfileForm] = useState({
@@ -52,6 +129,7 @@ export default function Onboarding() {
         const profileData = await profileRes.json();
         if (profileData.data) {
           const p = profileData.data;
+          setAvatarUrl(p.avatarUrl || null);
           setProfileForm({
             gender: p.gender || 'other',
             age: p.age || 25,
@@ -250,6 +328,50 @@ export default function Onboarding() {
             <h2 className="font-journal-headline text-2xl text-[#8f361d] border-b border-[#ddc0b9]/40 pb-2">
               Vibe & Preferences
             </h2>
+
+            {/* Profile Picture Upload Section with Plus Icon */}
+            <div className="flex flex-col items-center justify-center py-6 border-b border-[#ddc0b9]/30">
+              <label className="font-journal-label text-[10px] text-[#89726c] tracking-widest uppercase mb-3 block font-bold">
+                PROFILE PICTURE
+              </label>
+              
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-[#8f361d] shadow-lg relative bg-[#e4e2dd] transition-all hover:brightness-95">
+                  <img
+                    src={avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCELUwqFW8Qdkh2CfTBkR3Oxcv-Arc2HtCNQsPYI0DNAF7nE_lrIpByFVZHnHdB3BapO-Fu6X3n1X6DE6FgdF9nO8lyjtmwXr85-X9yCDkDNAF7nE_lrIpByFVZHnHdB3BapO-Fu6X3n1X6DE6FgdF9nO8lyjtmwXr85-X9yCDkDNAF7nE_lrIpByFVZHnHdB3BapO-Fu6X3n1X6DE6FgdF9nO8lyjtmwXr85-X9yCDkDNAF7nE_lrIpByFVZHnHdB3BapO-Fu6X3n1X6DE6FgdF9nO8lyjtmwXr85-X9yCDkDMgEir4hBW9WvPSk7ApRh004HM3nghn66MReNj6AEmt4SJTLV67HnKMONXxgaafAFp0M9zPc65lui_Yptfp924FqWLm4elACNLhZvy4AbuUWRBXAKpIC3EqSGZupIiwh-8XOHt3sZMBLyLOWdWqBlDCLqBNAo0yelsxk'}
+                    alt="Traveler avatar"
+                    className="w-full h-full object-cover"
+                  />
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] text-white font-bold uppercase tracking-wider animate-pulse">
+                      Saving...
+                    </div>
+                  )}
+                </div>
+
+                {/* Floating Plus button */}
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center shadow-lg cursor-pointer hover:bg-[#af4d32] active:scale-95 transition-all border-2 border-white select-none animate-pulse"
+                  title="Upload profile picture"
+                >
+                  <span className="text-lg font-bold leading-none">+</span>
+                </label>
+                
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="sr-only"
+                  disabled={uploadingAvatar}
+                />
+              </div>
+
+              <span className="text-[10px] text-[#89726c] mt-3 block font-journal-body text-center leading-relaxed">
+                Click the <strong className="text-[#ba1a1a] font-bold">+</strong> badge to upload a customized profile image
+              </span>
+            </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div>

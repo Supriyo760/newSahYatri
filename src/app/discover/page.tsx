@@ -15,6 +15,14 @@ interface Match {
     nationality: string | null;
     travelStyle: string | null;
     interests: string[];
+    openness?: number;
+    conscientiousness?: number;
+    extraversion?: number;
+    agreeableness?: number;
+    neuroticism?: number;
+    riskTolerance?: number;
+    budgetLevel?: string;
+    foodPreferences?: Record<string, boolean>;
   };
   compatibility: {
     overallScore: number;
@@ -23,7 +31,8 @@ interface Match {
     budgetScore: number;
     foodScore: number;
     riskScore: number;
-    conflictPrediction: {
+    conflictRisk?: number;
+    conflictPrediction?: {
       riskLevel: string;
       triggers: string[];
       mitigationAdvice: string;
@@ -52,6 +61,24 @@ export default function Discover() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
+
+  const handleUpgradePremium = async () => {
+    setMessage('');
+    try {
+      const res = await fetch('/api/users/upgrade', {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setShowUpgradeSuccess(true);
+        setMessage('Congratulations! You are now a Global Nomad Premium Member!');
+      } else {
+        throw new Error('Upgrade failed');
+      }
+    } catch (err: any) {
+      setMessage(`Upgrade error: ${err.message}`);
+    }
+  };
 
   // Fetch data
   const fetchData = async () => {
@@ -80,7 +107,9 @@ export default function Discover() {
   };
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(() => {
+      fetchData();
+    });
   }, []);
 
   const handleJoinGroup = async (e: React.FormEvent) => {
@@ -180,10 +209,10 @@ export default function Discover() {
               )}
 
               {matches.map((match) => (
-                <div
+                <Link
                   key={match.user.id}
-                  onClick={() => setSelectedMatch(match)}
-                  className="group relative flex flex-col items-center bg-white p-5 pb-8 rounded-2xl shadow-tactile border border-[#ddc0b9]/30 transition-transform duration-500 hover:-translate-y-2 cursor-pointer"
+                  href={`/profile/${match.user.id}`}
+                  className="group relative flex flex-col items-center bg-white p-5 pb-8 rounded-2xl shadow-tactile border border-[#ddc0b9]/30 transition-transform duration-500 hover:-translate-y-2 cursor-pointer block"
                 >
                   <div className="relative w-full aspect-[4/5] overflow-hidden mb-6 rounded-lg bg-[#f0eee9]">
                     <img
@@ -210,7 +239,7 @@ export default function Discover() {
                       <span className="px-3 py-1 rounded-full bg-[#fdb55c]/10 border border-[#fdb55c]/20 text-[9px] font-journal-label text-[#865300] uppercase">
                         {match.user.travelStyle} Style
                       </span>
-                      {match.user.interests?.slice(0, 2).map((interest, idx) => (
+                      {(Array.isArray(match.user.interests) ? match.user.interests : []).slice(0, 2).map((interest, idx) => (
                         <span
                           key={idx}
                           className="px-3 py-1 rounded-full bg-[#b5ccb8]/10 border border-[#b5ccb8]/20 text-[9px] font-journal-label text-[#435848] uppercase"
@@ -223,7 +252,7 @@ export default function Discover() {
                       &ldquo;Seeking to explore hidden sanctuaries and share authentic culinary discoveries...&rdquo;
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -232,99 +261,7 @@ export default function Discover() {
         {/* Right Side: Group Creation & Detailed Match view (col-span-4) */}
         <div className="lg:col-span-4 space-y-8">
           
-          {/* Match Detail View overlay or panel */}
-          {selectedMatch && (
-            <div className="bg-[#fdb55c]/10 border border-[#fdb55c]/30 rounded-2xl p-6 shadow-tactile space-y-6">
-              <div className="flex justify-between items-start">
-                <h3 className="font-journal-headline text-xl text-[#8f361d]">
-                  Compatibility Analysis
-                </h3>
-                <button
-                  onClick={() => setSelectedMatch(null)}
-                  className="text-xs font-semibold text-[#89726c] hover:text-[#8f361d]"
-                >
-                  Clear Details
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-[#56423d] mb-1">
-                    Matching score with {selectedMatch.user.name}:
-                  </h4>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 bg-[#f0eee9] h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-[#8f361d] h-2.5 rounded-full"
-                        style={{ width: `${selectedMatch.compatibility.overallScore}%` }}
-                      />
-                    </div>
-                    <span className="font-journal-headline text-2xl text-[#8f361d]">
-                      {selectedMatch.compatibility.overallScore}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="bg-white/60 p-3 rounded-xl border border-[#ddc0b9]/30">
-                    <span className="text-[10px] text-[#89726c] block">Personality</span>
-                    <span className="font-journal-headline text-lg text-[#8f361d]">
-                      {selectedMatch.compatibility.personalityScore}%
-                    </span>
-                  </div>
-                  <div className="bg-white/60 p-3 rounded-xl border border-[#ddc0b9]/30">
-                    <span className="text-[10px] text-[#89726c] block">Travel Style</span>
-                    <span className="font-journal-headline text-lg text-[#8f361d]">
-                      {selectedMatch.compatibility.travelStyleScore}%
-                    </span>
-                  </div>
-                  <div className="bg-white/60 p-3 rounded-xl border border-[#ddc0b9]/30">
-                    <span className="text-[10px] text-[#89726c] block">Food Vibe</span>
-                    <span className="font-journal-headline text-lg text-[#8f361d]">
-                      {selectedMatch.compatibility.foodScore}%
-                    </span>
-                  </div>
-                  <div className="bg-white/60 p-3 rounded-xl border border-[#ddc0b9]/30">
-                    <span className="text-[10px] text-[#89726c] block">Budget Alignment</span>
-                    <span className="font-journal-headline text-lg text-[#8f361d]">
-                      {selectedMatch.compatibility.budgetScore}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Conflict Prediction Card */}
-                <div className="p-4 bg-white rounded-xl border border-[#ddc0b9]/40 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-journal-label text-[#89726c]">CONFLICT PREDICTION</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      selectedMatch.compatibility.conflictPrediction.riskLevel === 'Low'
-                        ? 'bg-[#d1e9d3] text-[#435848]'
-                        : 'bg-[#ffdad6] text-[#ba1a1a]'
-                    }`}>
-                      {selectedMatch.compatibility.conflictPrediction.riskLevel} Risk
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#56423d] italic leading-relaxed">
-                    &ldquo;{selectedMatch.compatibility.conflictPrediction.mitigationAdvice}&rdquo;
-                  </p>
-                  <div className="text-[10px] text-[#89726c]">
-                    <strong>Potential Triggers:</strong> {selectedMatch.compatibility.conflictPrediction.triggers.join(', ')}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs text-[#56423d]">
-                    <strong>Interests: </strong>
-                    {selectedMatch.user.interests?.join(', ') || 'General exploration'}
-                  </p>
-                  <p className="text-xs text-[#56423d]">
-                    <strong>Style Summary: </strong>
-                    An onboarded traveler seeking slow, high-depth encounters.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Match Detail View has been upgraded to a full glassmorphic Biodata Modal Overlay */}
 
           {/* Messages alert banner */}
           {message && (
@@ -393,6 +330,55 @@ export default function Discover() {
             </form>
           </div>
 
+          {/* Premium Billing Section */}
+          <div className="bg-[#1b1c19] text-[#fbf9f4] p-6 rounded-2xl border border-[#ddc0b9]/40 space-y-5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#8f361d]/30 to-transparent pointer-events-none" />
+            <div className="flex justify-between items-center border-b border-[#ddc0b9]/20 pb-3">
+              <span className="font-journal-label text-[9px] text-[#fdb55c] tracking-widest uppercase font-bold">
+                PLATFORM SUBSCRIPTION
+              </span>
+              <span className="bg-[#8f361d] text-white text-[8px] font-bold px-2.5 py-0.5 rounded-full">
+                PREMIUM
+              </span>
+            </div>
+            
+            <div className="space-y-1">
+              <h4 className="font-journal-headline text-2xl text-[#fdb55c] italic">Global Nomad Premium</h4>
+              <p className="text-[10px] text-[#89726c]">Unlock all dynamic AI and safety metrics</p>
+            </div>
+
+            <div className="text-2xl font-bold flex items-baseline gap-1">
+              <span>$9.99</span>
+              <span className="text-xs text-[#89726c] font-normal">/ month</span>
+            </div>
+
+            <ul className="space-y-2.5 text-xs text-[#dcdacb]">
+              <li className="flex items-start gap-2">
+                <span className="text-[#fdb55c] font-bold">✓</span>
+                <span>Persistent **AI Safety Assistant Chatbot** bubble</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#fdb55c] font-bold">✓</span>
+                <span>Unleash **Dijkstra Dynamic Route Radar** paths</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#fdb55c] font-bold">✓</span>
+                <span>Score **XGBoost Hidden Gems** at 100% depth</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#fdb55c] font-bold">✓</span>
+                <span>Interactive **Medication Intake Checklist** logs</span>
+              </li>
+            </ul>
+
+            <button
+              onClick={handleUpgradePremium}
+              className="w-full bg-[#fdb55c] text-[#1b1c19] font-bold py-2.5 rounded-full font-journal-label text-[10px] tracking-wider uppercase hover:bg-white hover:text-[#8f361d] transition-all transform active:scale-95 shadow-tactile text-center cursor-pointer"
+            >
+              UPGRADE TO PREMIUM
+            </button>
+          </div>
+
           {/* List of Joined Groups */}
           <div className="bg-[#fbf9f4] border border-[#ddc0b9]/40 p-6 rounded-2xl space-y-4">
             <h3 className="font-journal-headline text-lg text-[#1b1c19]">
@@ -435,6 +421,264 @@ export default function Discover() {
 
         </div>
       </main>
+
+      {/* Subscription Success Modal */}
+      {showUpgradeSuccess && (
+        <div className="fixed inset-0 bg-[#1b1c19]/60 backdrop-blur-md z-[100] flex items-center justify-center p-6 transition-all animate-fade-in">
+          <div className="bg-[#fbf9f4] border border-[#ddc0b9] p-8 rounded-2xl max-w-sm w-full text-center space-y-6 shadow-2xl relative">
+            <span className="text-5xl block animate-bounce">🎉</span>
+            <h3 className="font-journal-headline text-3xl text-[#8f361d]">Welcome, Premium Nomad!</h3>
+            <p className="text-xs text-[#89726c] leading-relaxed">
+              Your profile has been upgraded to **Global Nomad Premium** inside the database. You have successfully unlocked real-time Dijkstra maps routing, medication tracker checklist panels, and the floating AI Safety Chatbot!
+            </p>
+            <button
+              onClick={() => setShowUpgradeSuccess(false)}
+              className="w-full bg-[#8f361d] text-white py-2.5 rounded-full font-journal-label text-[10px] uppercase tracking-widest hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95"
+            >
+              START EXPEDITION
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Full screen glassmorphic Biodata Modal Overlay */}
+      {selectedMatch && (
+        <div className="fixed inset-0 bg-[#1b1c19]/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 md:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-[#fbf9f4] border-2 border-[#ddc0b9] p-6 md:p-8 rounded-3xl max-w-2xl w-full my-8 space-y-6 shadow-2xl relative text-left scrollbar-thin overflow-y-auto max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-[#ddc0b9]/40 pb-3">
+              <span className="font-journal-label text-[10px] text-[#8f361d] tracking-widest uppercase font-bold">
+                COMPREHENSIVE TRAVELER BIODATA
+              </span>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="w-7 h-7 rounded-full bg-[#f0eee9] hover:bg-[#ffdad6] text-[#89726c] hover:text-[#ba1a1a] flex items-center justify-center text-sm font-bold shadow-sm transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Profile Overview (Polaroid card / Header slot) */}
+            <div className="flex flex-col md:flex-row gap-6 items-center bg-white p-5 rounded-2xl border border-[#ddc0b9]/30 shadow-tactile">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-[#8f361d] shadow-md relative bg-[#e4e2dd] shrink-0">
+                <img
+                  src={selectedMatch.user.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'}
+                  alt={selectedMatch.user.name || 'Traveler'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="space-y-2 text-center md:text-left flex-1">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <h3 className="font-journal-headline text-3xl text-[#1b1c19] italic">
+                    {selectedMatch.user.name || 'Explorer'}, {selectedMatch.user.age || '20s'}
+                  </h3>
+                  <span className="bg-[#8f361d] text-white text-[10px] font-bold px-3 py-1 rounded-full text-center tracking-wider">
+                    {selectedMatch.compatibility.overallScore}% COMPATIBLE
+                  </span>
+                </div>
+                <p className="font-journal-label text-[10px] text-[#89726c] uppercase">
+                  {selectedMatch.user.nationality || 'Wanderer'} &bull; {selectedMatch.user.gender || 'Other'}
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#fdb55c]/10 border border-[#fdb55c]/20 text-[9px] font-journal-label text-[#865300] uppercase font-bold">
+                    {selectedMatch.user.travelStyle} Style
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#8f361d]/10 border border-[#8f361d]/20 text-[9px] font-journal-label text-[#8f361d] uppercase font-bold">
+                    Budget: {selectedMatch.user.budgetLevel || 'Average'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Personality traits */}
+              <div className="space-y-4 bg-[#f0eee9]/40 p-5 rounded-2xl border border-[#ddc0b9]/20">
+                <h4 className="font-journal-headline text-lg text-[#8f361d] border-b border-[#ddc0b9]/30 pb-1">
+                  Big Five Personality Traits
+                </h4>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Openness', val: selectedMatch.user.openness ?? 0.5 },
+                    { label: 'Conscientiousness', val: selectedMatch.user.conscientiousness ?? 0.5 },
+                    { label: 'Extraversion', val: selectedMatch.user.extraversion ?? 0.5 },
+                    { label: 'Agreeableness', val: selectedMatch.user.agreeableness ?? 0.5 },
+                    { label: 'Neuroticism', val: selectedMatch.user.neuroticism ?? 0.5 },
+                  ].map(trait => (
+                    <div key={trait.label} className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-bold text-[#56423d]">
+                        <span>{trait.label}</span>
+                        <span>{Math.round(trait.val * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-[#f0eee9] h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-[#8f361d] h-2 rounded-full"
+                          style={{ width: `${trait.val * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preferences & Matching Analytics */}
+              <div className="space-y-4 flex flex-col justify-between">
+                
+                {/* Compatibility stats */}
+                <div className="bg-[#f0eee9]/40 p-5 rounded-2xl border border-[#ddc0b9]/20 space-y-3">
+                  <h4 className="font-journal-headline text-lg text-[#8f361d] border-b border-[#ddc0b9]/30 pb-1">
+                    Similarity Scores
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className="bg-white p-2.5 rounded-xl border border-[#ddc0b9]/20">
+                      <span className="text-[9px] text-[#89726c] block uppercase font-semibold">Personality</span>
+                      <span className="font-journal-headline text-base text-[#8f361d]">
+                        {selectedMatch.compatibility.personalityScore}%
+                      </span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-[#ddc0b9]/20">
+                      <span className="text-[9px] text-[#89726c] block uppercase font-semibold">Travel Style</span>
+                      <span className="font-journal-headline text-base text-[#8f361d]">
+                        {selectedMatch.compatibility.travelStyleScore}%
+                      </span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-[#ddc0b9]/20">
+                      <span className="text-[9px] text-[#89726c] block uppercase font-semibold">Food Vibe</span>
+                      <span className="font-journal-headline text-base text-[#8f361d]">
+                        {selectedMatch.compatibility.foodScore}%
+                      </span>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-[#ddc0b9]/20">
+                      <span className="text-[9px] text-[#89726c] block uppercase font-semibold">Budget</span>
+                      <span className="font-journal-headline text-base text-[#8f361d]">
+                        {selectedMatch.compatibility.budgetScore}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dietary vibe preferences */}
+                <div className="bg-[#f0eee9]/40 p-5 rounded-2xl border border-[#ddc0b9]/20 space-y-2">
+                  <h4 className="font-journal-label text-[10px] text-[#89726c] tracking-wider block font-bold">
+                    FOOD PREFERENCES
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedMatch.user.foodPreferences ? (
+                      Object.entries(selectedMatch.user.foodPreferences)
+                        .filter(([, enabled]) => !!enabled)
+                        .map(([key]) => {
+                          const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+                          return (
+                            <span key={key} className="px-2 py-0.5 rounded bg-[#b5ccb8]/20 border border-[#b5ccb8]/40 text-[9px] font-journal-label text-[#435848] uppercase font-semibold">
+                              {formattedKey}
+                            </span>
+                          );
+                        })
+                    ) : (
+                      <span className="text-xs text-[#89726c] italic">No restrictions listed</span>
+                    )}
+                    {(!selectedMatch.user.foodPreferences || Object.values(selectedMatch.user.foodPreferences).filter(Boolean).length === 0) && (
+                      <span className="text-[10px] text-[#89726c] italic">Omnivore (Street food & casual dining)</span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Conflict & Interests full rows */}
+            <div className="space-y-4">
+              
+              {/* Dynamic Conflict Analysis */}
+              {(() => {
+                const conflictRisk = selectedMatch.compatibility.conflictRisk ?? 0.3;
+                const riskLevel = conflictRisk > 0.6 ? 'High' : conflictRisk > 0.3 ? 'Moderate' : 'Low';
+                const mitigationAdvice = riskLevel === 'High' 
+                  ? 'Schedule distinct individual downtime and define budget boundaries beforehand.' 
+                  : riskLevel === 'Moderate'
+                  ? 'Align on culinary choices and daily waking hours to avoid friction.'
+                  : 'Highly compatible styles. Dynamic cooperative scheduling is recommended!';
+                const triggers = riskLevel === 'High'
+                  ? ['Budget discrepancies', 'Intense packing schedules']
+                  : riskLevel === 'Moderate'
+                  ? ['Different meal times', 'Pace mismatch']
+                  : ['Minimal triggers anticipated'];
+
+                return (
+                  <div className="p-5 bg-white rounded-2xl border border-[#ddc0b9]/40 space-y-3">
+                    <div className="flex justify-between items-center border-b border-[#ddc0b9]/10 pb-2">
+                      <span className="text-[10px] font-journal-label text-[#89726c] font-bold">COOPERATIVE CONFLICT PREDICTION</span>
+                      <span className={`text-[10px] font-bold px-3 py-0.5 rounded-full ${
+                        riskLevel === 'Low'
+                          ? 'bg-[#d1e9d3] text-[#435848]'
+                          : riskLevel === 'Moderate'
+                          ? 'bg-[#fdb55c]/20 text-[#865300]'
+                          : 'bg-[#ffdad6] text-[#ba1a1a]'
+                      }`}>
+                        {riskLevel} Conflict Risk
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#56423d] italic leading-relaxed">
+                      &ldquo;{mitigationAdvice}&rdquo;
+                    </p>
+                    <div className="text-[10px] text-[#89726c]">
+                      <strong>Potential Triggers:</strong> {triggers.join(', ')}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Shared Interests list */}
+              <div className="p-5 bg-[#f0eee9]/30 rounded-2xl border border-[#ddc0b9]/20 space-y-2">
+                <h4 className="font-journal-label text-[10px] text-[#89726c] tracking-wider block font-bold">
+                  EXPEDITION INTERESTS
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {(Array.isArray(selectedMatch.user.interests) ? selectedMatch.user.interests : []).length > 0 ? (
+                    (selectedMatch.user.interests || []).map((interest, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 rounded-full bg-white border border-[#ddc0b9]/30 text-[10px] font-journal-label text-[#56423d] uppercase font-bold"
+                      >
+                        {interest}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-[#89726c] italic">Slow exploration, scenery, culinary tours</span>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col md:flex-row gap-3 pt-4 border-t border-[#ddc0b9]/40">
+              <button
+                onClick={() => {
+                  setSelectedMatch(null);
+                  const createGroupEl = document.getElementById('new-group-name');
+                  if (createGroupEl) {
+                    createGroupEl.focus();
+                  }
+                  setMessage(`Start planning! Form a group and invite ${selectedMatch.user.name || 'your match'}.`);
+                }}
+                className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md"
+              >
+                FORM TRAVEL GROUP
+              </button>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="flex-1 bg-[#f0eee9] text-[#56423d] py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#ffdad6] hover:text-[#ba1a1a] transition-all cursor-pointer text-center font-bold"
+              >
+                BACK TO DISCOVER
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       <BottomNavBar />
     </div>

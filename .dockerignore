@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+.git
+.github
+*.log
+docker-compose*
+Dockerfile
+.env*.local
+.vercel

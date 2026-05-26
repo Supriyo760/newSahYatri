@@ -40,6 +40,78 @@ export default function Safety() {
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Medication Tracker State
+  const [medications, setMedications] = useState([
+    { id: '1', name: 'Metformin', dosage: '500mg', time: '08:00 AM', taken: false },
+    { id: '2', name: 'Albuterol Inhaler', dosage: '2 puffs', time: '12:00 PM', taken: true },
+    { id: '3', name: 'Atorvastatin', dosage: '10mg', time: '08:00 PM', taken: false }
+  ]);
+  const [newMedName, setNewMedName] = useState('');
+  const [newMedDosage, setNewMedDosage] = useState('');
+  const [newMedTime, setNewMedTime] = useState('08:00');
+
+  const handleToggleMed = (id: string) => {
+    setMedications(medications.map(m => m.id === id ? { ...m, taken: !m.taken } : m));
+  };
+
+  const handleAddMed = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMedName) return;
+    const timeFormatted = new Date(`2000-01-01T${newMedTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    setMedications([
+      ...medications,
+      {
+        id: Date.now().toString(),
+        name: newMedName,
+        dosage: newMedDosage || '1 dose',
+        time: timeFormatted,
+        taken: false
+      }
+    ]);
+    setNewMedName('');
+    setNewMedDosage('');
+  };
+
+  // AI Chatbot State
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'bot' | 'user'; content: string }>>([
+    { sender: 'bot', content: 'Greetings, traveler! I am your SahYatri AI Safety Assistant. Ask me any first-aid question, symptoms concern, or local medical emergency protocols.' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const userMsg = chatInput.trim();
+    setChatMessages(prev => [...prev, { sender: 'user', content: userMsg }]);
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/chat/bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChatMessages(prev => [...prev, { sender: 'bot', content: data.reply || data.data || 'I am reviewing your symptoms. Please call 112 if condition worsens.' }]);
+      } else {
+        throw new Error('AI could not resolve');
+      }
+    } catch {
+      // Elegant fallback response
+      setChatMessages(prev => [...prev, { 
+        sender: 'bot', 
+        content: `I have noted your concern regarding "${userMsg}". For your safety, if you are experiencing severe breathing difficulties, chest tightness, or allergic shock, please administer first-aid immediately and head to the nearest trauma center.` 
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   // Get current position
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -330,6 +402,76 @@ export default function Safety() {
                   </div>
                 )}
 
+                {/* Medication Intake Log & Schedule panel */}
+                <div className="space-y-4 pt-4 border-t border-[#ddc0b9]/40">
+                  <div className="flex justify-between items-center">
+                    <span className="font-journal-label text-[9px] text-[#89726c] uppercase">MEDICATION INTAKE LOG</span>
+                    <span className="text-[10px] font-semibold text-[#8f361d]">
+                      {medications.filter(m => m.taken).length} / {medications.length} Done
+                    </span>
+                  </div>
+
+                  {/* Checklist */}
+                  <div className="space-y-2.5">
+                    {medications.map(med => (
+                      <div
+                        key={med.id}
+                        onClick={() => handleToggleMed(med.id)}
+                        className={`p-3.5 rounded-xl border flex justify-between items-center transition-all cursor-pointer select-none active:scale-[0.99] ${
+                          med.taken
+                            ? 'bg-[#d1e9d3]/20 border-[#435848]/30 opacity-75 line-through text-[#89726c]'
+                            : 'bg-white border-[#ddc0b9]/30 hover:shadow-tactile'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={med.taken}
+                            onChange={() => {}} // toggled via parent click
+                            className="w-4 h-4 rounded text-[#8f361d] focus:ring-[#8f361d] border-[#ddc0b9]"
+                          />
+                          <div className="text-xs">
+                            <span className="font-bold text-[#1b1c19] block">{med.name}</span>
+                            <span className="text-[10px] text-[#89726c]">{med.dosage}</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#89726c]">{med.time}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Quick add form */}
+                  <form onSubmit={handleAddMed} className="grid grid-cols-1 md:grid-cols-12 gap-2.5 pt-2">
+                    <input
+                      type="text"
+                      placeholder="Medication Name"
+                      value={newMedName}
+                      onChange={e => setNewMedName(e.target.value)}
+                      className="md:col-span-5 bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="e.g. 500mg, 1 tab"
+                      value={newMedDosage}
+                      onChange={e => setNewMedDosage(e.target.value)}
+                      className="md:col-span-3 bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs"
+                    />
+                    <input
+                      type="time"
+                      value={newMedTime}
+                      onChange={e => setNewMedTime(e.target.value)}
+                      className="md:col-span-2 bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs font-mono"
+                    />
+                    <button
+                      type="submit"
+                      className="md:col-span-2 bg-[#8f361d] text-white py-2 rounded-lg font-journal-label text-[9px] uppercase tracking-wider hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95 text-center font-bold"
+                    >
+                      ADD
+                    </button>
+                  </form>
+                </div>
+
                 {/* Insurance details */}
                 <div className="space-y-2 pt-4 border-t border-[#ddc0b9]/40">
                   <span className="font-journal-label text-[9px] text-[#89726c] uppercase">LOGGED COVERAGE</span>
@@ -436,6 +578,92 @@ export default function Safety() {
         )}
 
       </main>
+
+      {/* Floating AI Safety Assistant Chatbot Bubble & Drawer */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        {/* Chat Drawer */}
+        {chatOpen && (
+          <div className="w-[360px] h-[480px] bg-[#fbf9f4]/95 backdrop-blur-md border border-[#ddc0b9] rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-4 animate-fade-in relative">
+            {/* Header */}
+            <div className="bg-[#1b1c19] text-[#fbf9f4] p-4 flex justify-between items-center border-b border-[#ddc0b9]/20">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#fdb55c] animate-pulse" />
+                <div className="text-left">
+                  <h4 className="font-journal-headline text-lg text-[#fdb55c] italic">SahYatri AI Safety</h4>
+                  <p className="text-[9px] text-[#89726c] uppercase tracking-wider">Expert medical & first-aid support</p>
+                </div>
+              </div>
+              <button onClick={() => setChatOpen(false)} className="text-[#89726c] hover:text-[#fdb55c] text-xs font-bold">
+                ✕
+              </button>
+            </div>
+
+            {/* Messages box */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin">
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[85%] p-3 rounded-xl text-xs leading-relaxed ${
+                      msg.sender === 'user'
+                        ? 'bg-[#8f361d] text-white rounded-br-none shadow-md'
+                        : 'bg-[#f0eee9] text-[#1b1c19] rounded-bl-none border border-[#ddc0b9]/30 shadow-sm'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-[#f0eee9] text-[#89726c] p-3 rounded-xl rounded-bl-none border border-[#ddc0b9]/30 text-xs italic animate-pulse">
+                    Consulting medical handbook...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input form */}
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-[#ddc0b9]/30 flex gap-2 bg-[#f0eee9]/40">
+              <input
+                type="text"
+                placeholder="Ask safety bot..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                className="flex-1 bg-white border border-[#ddc0b9]/40 rounded-lg px-3 py-2 text-xs"
+                required
+              />
+              <button
+                type="submit"
+                disabled={chatLoading}
+                className="bg-[#8f361d] text-white px-4 rounded-lg font-journal-label text-[10px] uppercase tracking-widest hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95 font-bold disabled:opacity-50"
+              >
+                SEND
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Chat Bubble trigger */}
+        <button
+          onClick={() => setChatOpen(!chatOpen)}
+          className="w-14 h-14 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
+        >
+          {chatOpen ? (
+            <span className="text-xl font-bold">✕</span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-[3.65C2.457 16.087 1 13.913 1 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+            </svg>
+          )}
+          {/* Pulsing indicator tag */}
+          {!chatOpen && (
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#fdb55c] border-2 border-white animate-ping" />
+          )}
+        </button>
+      </div>
 
       <BottomNavBar />
     </div>

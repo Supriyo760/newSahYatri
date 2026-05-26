@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface UseSocketProps {
@@ -13,16 +13,20 @@ export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
   useEffect(() => {
     // Connect to server (same origin)
     const socketInstance = io();
-    setSocket(socketInstance);
+    
+    // Defer state update to prevent synchronous cascading renders inside the effect
+    Promise.resolve().then(() => {
+      setSocket(socketInstance);
+    });
 
     socketInstance.on('connect', () => {
       setIsConnected(true);
-      console.log('Socket client connected:', socket.id);
+      console.log('Socket client connected:', socketInstance.id);
 
       if (groupId) {
-        socket.emit('join_group', { groupId });
+        socketInstance.emit('join_group', { groupId });
       } else if (chatId) {
-        socket.emit('join_pre_match', { chatId });
+        socketInstance.emit('join_pre_match', { chatId });
       }
     });
 
@@ -41,3 +45,4 @@ export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
     isConnected,
   };
 }
+
