@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 from pydantic import BaseModel
 from typing import List
 
@@ -12,18 +11,11 @@ class MedicalRiskRequest(BaseModel):
     destination_type: str # e.g., 'high_altitude', 'tropical', 'urban'
     trip_duration_days: int
 
-# In a real app, these models would be loaded from disk (e.g. .pkl files)
-# For the MVP, we simulate the inference logic.
-dummy_conflict_model = RandomForestClassifier(random_state=42)
-# Simulating a trained model state for dummy inference
-dummy_conflict_model.fit(np.array([[0,0], [1,1]]), [0, 1]) 
-
 def predict_conflict_probability(features_a: List[float], features_b: List[float]) -> float:
     """
-    Predicts the probability of conflict between two users based on their feature vectors.
+    Estimates conflict probability between two users from their feature vectors.
     Returns a float between 0.0 (no conflict) and 1.0 (high conflict).
     """
-    # Simulate feature difference
     arr_a = np.array(features_a)
     arr_b = np.array(features_b)
     
@@ -35,8 +27,6 @@ def predict_conflict_probability(features_a: List[float], features_b: List[float
         
     diff = np.abs(arr_a - arr_b)
     
-    # Simulate Random Forest inference (using arbitrary math for MVP)
-    # The larger the difference in personality/budget, the higher the conflict probability
     base_prob = np.mean(diff) if len(diff) > 0 else 0.5
     
     # Bound between 0.05 and 0.95

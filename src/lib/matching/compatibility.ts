@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { compatibilityScores } from '@/db/schema';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * Calculates cosine similarity between two vectors of equal length.

@@ -3,6 +3,9 @@ import CryptoJS from 'crypto-js';
 function getKey(): string {
   const key = process.env.MEDICAL_ENCRYPTION_KEY;
   if (!key || key.length < 32) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('MEDICAL_ENCRYPTION_KEY must be at least 32 characters in production');
+    }
     return 'default_32_char_fallback_key_for_build_purposes';
   }
   return key;

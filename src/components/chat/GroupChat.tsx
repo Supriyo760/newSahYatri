@@ -19,7 +19,7 @@ interface GroupChatProps {
 }
 
 export default function GroupChat({ groupId, currentUserId }: GroupChatProps) {
-  const { socket, isConnected } = useSocket({ groupId });
+  const { socket, isConnected } = useSocket({ groupId, userId: currentUserId });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);

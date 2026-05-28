@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { messages } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
+import { isGroupMember } from '@/lib/authz';
 
 export async function GET(
   req: NextRequest,
@@ -13,6 +14,9 @@ export async function GET(
 
   try {
     const { groupId } = await params;
+    if (!(await isGroupMember(session.user.id, groupId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const groupMessages = await db.select()
       .from(messages)

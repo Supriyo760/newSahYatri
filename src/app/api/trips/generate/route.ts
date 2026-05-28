@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { trips, itineraryDays, itineraryItems, travelGroups, personalityProfiles } from '@/db/schema';
+import { trips, itineraryDays, itineraryItems, personalityProfiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { generateItinerary } from '@/services/openai';
 import { searchPlace } from '@/services/google-maps';
 import { z } from 'zod';
+import { getGroupForMember } from '@/lib/authz';
 
 const generateSchema = z.object({
   groupId: z.string().uuid(),
@@ -24,9 +25,8 @@ export async function POST(req: NextRequest) {
     const data = generateSchema.parse(body);
 
     // Get group info + user profile for personalization
-    const [group] = await db.select().from(travelGroups)
-      .where(eq(travelGroups.id, data.groupId)).limit(1);
-    if (!group) return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+    const group = await getGroupForMember(session.user.id, data.groupId);
+    if (!group) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const [profile] = await db.select().from(personalityProfiles)
       .where(eq(personalityProfiles.userId, session.user.id)).limit(1);
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         await db.insert(itineraryItems).values({
           dayId: savedDay.id,
           orderIndex: i,
-          type: item.type as any,
+          type: item.type,
           name: item.name,
           description: item.description,
           locationName: placeData?.address || item.name,
@@ -110,8 +110,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ data: { tripId: trip.id } }, { status: 201 });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Trip generation error:', err);
-    return NextResponse.json({ error: `Trip generation failed: ${err?.message || err}` }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Trip generation failed: ${message}` }, { status: 500 });
   }
 }

@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { useSocket } from '@/hooks/useSocket';
-import { MapPin, Navigation, Crosshair } from 'lucide-react';
+import { Navigation, Crosshair } from 'lucide-react';
 
 interface LocationUpdate {
   userId: string;
@@ -21,7 +20,7 @@ interface LiveLocationMapProps {
 }
 
 export default function LiveLocationMap({ groupId, currentUserId, currentUserName, initialCenter = { lat: 20.5937, lng: 78.9629 } }: LiveLocationMapProps) {
-  const { socket, isConnected } = useSocket({ groupId });
+  const { socket, isConnected } = useSocket({ groupId, userId: currentUserId });
   const [memberLocations, setMemberLocations] = useState<Record<string, LocationUpdate>>({});
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -87,7 +86,7 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
     };
   }, [watchId]);
 
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const center = myLocation || initialCenter;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[500px] relative">
@@ -109,40 +108,39 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
       </div>
 
       <div className="flex-1 w-full bg-gray-100">
-        {!mapsApiKey || mapsApiKey.includes('Placeholder') ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-slate-50">
-            <MapPin size={48} className="mb-4 opacity-50" />
-            <p>Google Maps API Key not configured</p>
-          </div>
-        ) : (
-          <APIProvider apiKey={mapsApiKey}>
-            <Map
-              defaultCenter={initialCenter}
-              defaultZoom={13}
-              mapId="sahyatri_live_map"
-              gestureHandling="greedy"
-              disableDefaultUI={true}
-            >
-              {myLocation && (
-                <AdvancedMarker position={myLocation}>
-                  <Pin background={'#2563eb'} borderColor={'#1d4ed8'} glyphColor={'#fff'} />
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-white px-2 py-1 rounded-md shadow-md border border-gray-200 text-xs font-bold text-blue-700">
-                    You
-                  </div>
-                </AdvancedMarker>
-              )}
+        <div className="relative w-full h-full overflow-hidden bg-slate-100">
+          <iframe
+            src={`https://maps.google.com/maps?q=${center.lat},${center.lng}&z=13&output=embed`}
+            className="w-full h-full border-0"
+            loading="lazy"
+            title="Live group location map"
+            allowFullScreen
+          />
 
+          <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl border border-gray-200 shadow-md p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
+              <span>Your group locations</span>
+              <span>{Object.keys(memberLocations).length + (myLocation ? 1 : 0)} active</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {myLocation && (
+                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold">
+                  You: {myLocation.lat.toFixed(3)}, {myLocation.lng.toFixed(3)}
+                </span>
+              )}
               {Object.values(memberLocations).map((loc) => (
-                <AdvancedMarker key={loc.userId} position={{ lat: loc.lat, lng: loc.lng }}>
-                  <Pin background={'#10b981'} borderColor={'#059669'} glyphColor={'#fff'} />
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-white px-2 py-1 rounded-md shadow-md border border-gray-200 text-xs font-semibold text-gray-800">
-                    {loc.name}
-                  </div>
-                </AdvancedMarker>
+                <span key={loc.userId} className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold">
+                  {loc.name}: {loc.lat.toFixed(3)}, {loc.lng.toFixed(3)}
+                </span>
               ))}
-            </Map>
-          </APIProvider>
-        )}
+              {!myLocation && Object.keys(memberLocations).length === 0 && (
+                <span className="text-[10px] text-gray-500">
+                  Start sharing to broadcast your current position to the group.
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -4,9 +4,10 @@ import { io, Socket } from 'socket.io-client';
 interface UseSocketProps {
   groupId?: string;
   chatId?: string;
+  userId?: string;
 }
 
-export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
+export function useSocket({ groupId, chatId, userId }: UseSocketProps = {}) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -23,10 +24,10 @@ export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
       setIsConnected(true);
       console.log('Socket client connected:', socketInstance.id);
 
-      if (groupId) {
-        socketInstance.emit('join_group', { groupId });
-      } else if (chatId) {
-        socketInstance.emit('join_pre_match', { chatId });
+      if (groupId && userId) {
+        socketInstance.emit('join_group', { groupId, userId });
+      } else if (chatId && userId) {
+        socketInstance.emit('join_pre_match', { chatId, userId });
       }
     });
 
@@ -38,11 +39,10 @@ export function useSocket({ groupId, chatId }: UseSocketProps = {}) {
     return () => {
       socketInstance.disconnect();
     };
-  }, [groupId, chatId]);
+  }, [groupId, chatId, userId]);
 
   return {
     socket,
     isConnected,
   };
 }
-

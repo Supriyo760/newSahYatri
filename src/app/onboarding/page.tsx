@@ -95,6 +95,8 @@ export default function Onboarding() {
     nationality: '',
     travelStyle: 'mixed',
     budgetLevel: 'average',
+    preferredGroupSize: 4,
+    languagesSpoken: '',
     openness: 0.5,
     conscientiousness: 0.5,
     extraversion: 0.5,
@@ -136,6 +138,8 @@ export default function Onboarding() {
             nationality: p.nationality || '',
             travelStyle: p.travelStyle || 'mixed',
             budgetLevel: p.budgetLevel || 'average',
+            preferredGroupSize: p.preferredGroupSize || 4,
+            languagesSpoken: p.languagesSpoken?.join(', ') || '',
             openness: p.openness ?? 0.5,
             conscientiousness: p.conscientiousness ?? 0.5,
             extraversion: p.extraversion ?? 0.5,
@@ -192,8 +196,8 @@ export default function Onboarding() {
         budgetLevel: profileForm.budgetLevel,
         // Convert 0-1 slider to 1-5 integer scale
         riskTolerance: Math.max(1, Math.min(5, Math.round(Number(profileForm.riskTolerance) * 4 + 1))),
-        preferredGroupSize: 4,
-        languagesSpoken: [],
+        preferredGroupSize: Number(profileForm.preferredGroupSize),
+        languagesSpoken: profileForm.languagesSpoken.split(',').map(s => s.trim()).filter(Boolean),
         foodPreferences: {
           streetFood: profileForm.streetFood,
           fineDining: profileForm.fineDining,
@@ -214,7 +218,7 @@ export default function Onboarding() {
       const resData = await res.json();
       if (!res.ok) {
         if (Array.isArray(resData.error)) {
-          const messages = resData.error.map((issue: any) => `${issue.path.join('.')}: ${issue.message}`);
+          const messages = resData.error.map((issue: { path: Array<string | number>; message: string }) => `${issue.path.join('.')}: ${issue.message}`);
           throw new Error(messages.join('. '));
         }
         throw new Error(resData.error || 'Failed to save profile');
@@ -222,8 +226,8 @@ export default function Onboarding() {
 
       setMessage('Travel questionnaire saved successfully! Move to Medical tab or Explore.');
       setActiveTab('medical');
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      setMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -260,16 +264,17 @@ export default function Onboarding() {
       const resData = await res.json();
       if (!res.ok) {
         if (Array.isArray(resData.error)) {
-          const messages = resData.error.map((issue: any) => `${issue.path.join('.')}: ${issue.message}`);
+          const messages = resData.error.map((issue: { path: Array<string | number>; message: string }) => `${issue.path.join('.')}: ${issue.message}`);
           throw new Error(messages.join('. '));
         }
         throw new Error(typeof resData.error === 'string' ? resData.error : 'Failed to save medical profile');
       }
 
+      await updateSession({ isOnboarded: true });
       setMessage('Medical security profile saved and encrypted successfully!');
-      router.push('/discover');
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      setMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -442,6 +447,33 @@ export default function Onboarding() {
               </div>
             </div>
 
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">PREFERRED GROUP SIZE</label>
+                <select
+                  value={profileForm.preferredGroupSize}
+                  onChange={e => setProfileForm({ ...profileForm, preferredGroupSize: Number(e.target.value) })}
+                  className="w-full bg-[#fbf9f4] border border-[#ddc0b9] rounded-lg p-2.5 text-sm"
+                >
+                  <option value={3}>3 travelers</option>
+                  <option value={4}>4 travelers</option>
+                  <option value={5}>5 travelers</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">LANGUAGES SPOKEN</label>
+                <input
+                  type="text"
+                  placeholder="e.g. English, Hindi, Spanish"
+                  value={profileForm.languagesSpoken}
+                  onChange={e => setProfileForm({ ...profileForm, languagesSpoken: e.target.value })}
+                  className="w-full bg-[#fbf9f4] border border-[#ddc0b9] rounded-lg p-2.5 text-sm placeholder:text-[#89726c]/40"
+                />
+                <p className="text-[10px] text-[#89726c] mt-1">Separate languages with commas.</p>
+              </div>
+            </div>
+
             {/* Sliders for Big Five Personality Traits */}
             <div className="space-y-4">
               <h3 className="font-journal-headline text-lg text-[#8f361d] pt-4">Big Five Personality Traits</h3>
@@ -488,7 +520,7 @@ export default function Onboarding() {
                   <label key={pref.name} className="flex items-center gap-3 bg-[#fbf9f4] p-3 rounded-lg border border-[#ddc0b9] text-xs cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={(profileForm as any)[pref.name]}
+                      checked={profileForm[pref.name as keyof typeof profileForm] as boolean}
                       onChange={e => setProfileForm({ ...profileForm, [pref.name]: e.target.checked })}
                       className="accent-[#8f361d] rounded"
                     />
@@ -584,7 +616,7 @@ export default function Onboarding() {
                     value={cond.severity}
                     onChange={e => {
                       const updated = [...medicalForm.conditions];
-                      updated[idx].severity = e.target.value as any;
+                      updated[idx].severity = e.target.value as 'mild' | 'moderate' | 'severe';
                       setMedicalForm({ ...medicalForm, conditions: updated });
                     }}
                     className="w-full border-none border-b border-[#ddc0b9] p-2 text-sm bg-transparent"
@@ -638,7 +670,7 @@ export default function Onboarding() {
                     value={all.severity}
                     onChange={e => {
                       const updated = [...medicalForm.allergies];
-                      updated[idx].severity = e.target.value as any;
+                      updated[idx].severity = e.target.value as 'mild' | 'moderate' | 'severe' | 'anaphylactic';
                       setMedicalForm({ ...medicalForm, allergies: updated });
                     }}
                     className="w-full border-none border-b border-[#ddc0b9] p-2 text-sm bg-transparent"

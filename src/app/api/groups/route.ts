@@ -71,7 +71,7 @@ export async function GET() {
       .where(eq(groupMembers.userId, session.user.id));
 
     return NextResponse.json({ data: userGroups });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to retrieve groups' }, { status: 500 });
   }
 }

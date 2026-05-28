@@ -15,16 +15,6 @@ export interface PlaceDetails {
   types: string[];
 }
 
-// Helper: generate a Google Maps satellite thumbnail for a location
-function mapsThumb(lat: number, lng: number, zoom = 15): string {
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=800x400&maptype=satellite&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}`;
-}
-
-// Helper: generate a Google Maps search URL that can be opened for real photos
-function mapsSearchUrl(query: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
-
 const nominatimCache = new Map<string, any>();
 let lastRequestTime = 0;
 

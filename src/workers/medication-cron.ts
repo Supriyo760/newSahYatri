@@ -3,7 +3,6 @@
  * This script is intended to be run every minute (e.g., via * * * * * cron job or Vercel Cron).
  */
 
-import { db } from '../db';
 // Assuming we have a medications table in the schema
 // import { medications } from '../db/schema';
 import { processMedicationReminders } from '../lib/medical/reminders';

@@ -1,10 +1,17 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/Header';
 import BottomNavBar from '@/components/BottomNavBar';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import GroupChat from '@/components/chat/GroupChat';
+import MedicalSharingConsent from '@/components/medical/MedicalSharingConsent';
+import GroupMedicalOverview, { GroupMemberMedical } from '@/components/medical/GroupMedicalOverview';
+import ExpenseTracker from '@/components/trips/ExpenseTracker';
+import ChecklistNavigation from '@/components/trips/ChecklistNavigation';
+import LiveLocationMap from '@/components/map/LiveLocationMap';
 
 interface Group {
   id: string;
@@ -46,13 +53,37 @@ interface Trip {
   days: ItineraryDay[];
 }
 
+interface GroupDetails {
+  currentMembership: {
+    medicalSharingConsent: boolean | null;
+  };
+  members: Array<GroupMemberMedical & {
+    id: string;
+    role: string | null;
+    medicalSharingConsent: boolean | null;
+  }>;
+}
+
+interface ExpenseRow {
+  id: string;
+  description: string;
+  amount: number;
+  paidBy: string;
+  splitType: 'equal' | 'custom';
+  createdAt: string;
+  category: string | null;
+}
+
 function ItineraryContent() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const initialGroupId = searchParams.get('groupId') || '';
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
+  const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState('');
@@ -66,6 +97,7 @@ function ItineraryContent() {
   // Selected item details for Maps overlay simulated popup
   const [selectedItem, setSelectedItem] = useState<ItineraryItem | null>(null);
   const [activeTab, setActiveTab] = useState<'attractions' | 'food'>('attractions');
+  const [workflowTab, setWorkflowTab] = useState<'navigate' | 'chat' | 'care' | 'budget' | 'location'>('navigate');
 
   // Reservation Modal State
   const [bookingItem, setBookingItem] = useState<ItineraryItem | null>(null);
@@ -84,6 +116,24 @@ function ItineraryContent() {
     setBookingSuccess(true);
   };
 
+  const currentUserId = session?.user?.id || '';
+  const currentUserName = session?.user?.name || 'Traveler';
+  const groupMembers = (groupDetails?.members || []).map(member => ({
+    id: member.userId,
+    name: member.name,
+  }));
+  const firstDayItems = trip?.days?.[0]?.items || [];
+  const expenseTrackerRows = expenseRows.map(exp => ({
+    id: exp.id,
+    description: exp.description,
+    amount: Number(exp.amount),
+    paidBy: exp.paidBy,
+    paidByName: groupMembers.find(member => member.id === exp.paidBy)?.name || 'Traveler',
+    splitType: exp.splitType || 'equal',
+    date: exp.createdAt,
+    category: exp.category || 'general',
+  }));
+
   useEffect(() => {
     async function loadGroups() {
       try {
@@ -91,8 +141,8 @@ function ItineraryContent() {
         const data = await res.json();
         if (res.ok && data.data) {
           setGroups(data.data);
-          if (!selectedGroupId && data.data.length > 0) {
-            setSelectedGroupId(data.data[0].id);
+          if (data.data.length > 0) {
+            setSelectedGroupId(prev => prev || data.data[0].id);
           }
         }
       } catch (err) {
@@ -102,7 +152,32 @@ function ItineraryContent() {
     loadGroups();
   }, []);
 
-  const loadTrip = async (groupId: string) => {
+  const loadGroupDetails = useCallback(async (groupId: string) => {
+    if (!groupId) return;
+    try {
+      const res = await fetch(`/api/groups/${groupId}`);
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setGroupDetails(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load group details:', err);
+    }
+  }, []);
+
+  const loadExpenses = useCallback(async (tripId: string) => {
+    try {
+      const res = await fetch(`/api/trips/${tripId}/expenses`);
+      const data = await res.json();
+      if (res.ok && data.data?.expenses) {
+        setExpenseRows(data.data.expenses);
+      }
+    } catch (err) {
+      console.error('Failed to load trip expenses:', err);
+    }
+  }, []);
+
+  const loadTrip = useCallback(async (groupId: string) => {
     if (!groupId) return;
     setLoading(true);
     setTrip(null);
@@ -112,6 +187,7 @@ function ItineraryContent() {
       const data = await res.json();
       if (res.ok && data.data) {
         setTrip(data.data);
+        await loadExpenses(data.data.id);
         if (data.data.destination) {
           setDestination(data.data.destination);
         }
@@ -130,17 +206,20 @@ function ItineraryContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadExpenses]);
 
   useEffect(() => {
     if (selectedGroupId) {
-      loadTrip(selectedGroupId);
-      const matchedGroup = groups.find(g => g.id === selectedGroupId);
-      if (matchedGroup?.destination) {
-        setDestination(matchedGroup.destination);
-      }
+      void Promise.resolve().then(() => {
+        loadTrip(selectedGroupId);
+        loadGroupDetails(selectedGroupId);
+        const matchedGroup = groups.find(g => g.id === selectedGroupId);
+        if (matchedGroup?.destination) {
+          setDestination(matchedGroup.destination);
+        }
+      });
     }
-  }, [selectedGroupId, groups]);
+  }, [selectedGroupId, groups, loadTrip, loadGroupDetails]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,8 +242,8 @@ function ItineraryContent() {
       if (!res.ok) throw new Error(data.error || 'Failed to generate itinerary');
       setMessage('Itinerary successfully generated by SahYatri AI!');
       loadTrip(selectedGroupId);
-    } catch (err: any) {
-      setMessage(`Error: ${err.message}`);
+    } catch (err: unknown) {
+      setMessage(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setGenerating(false);
     }
@@ -310,7 +389,7 @@ function ItineraryContent() {
               </p>
               <div className="h-[1px] bg-[#89726c] w-24 mx-auto" />
               <p className="text-xs text-[#89726c] italic">
-                &ldquo;Every traveler's preference is a thread in the collective tapestry.&rdquo;
+                &ldquo;Every traveler&apos;s preference is a thread in the collective tapestry.&rdquo;
               </p>
             </div>
           )}
@@ -528,6 +607,121 @@ function ItineraryContent() {
 
         {/* Right Side: Map assistance & Detail Side Drawer (col-span-4) */}
         <div className="lg:col-span-4 space-y-8">
+          {selectedGroupId && (
+            <div className="bg-[#fbf9f4] border border-[#ddc0b9]/40 rounded-2xl overflow-hidden shadow-tactile">
+              <div className="p-4 border-b border-[#ddc0b9]/30 bg-[#f0eee9]">
+                <span className="font-journal-label text-[9px] text-[#8f361d] uppercase tracking-widest">
+                  Continuous Trip Workspace
+                </span>
+                <h3 className="font-journal-headline text-xl text-[#1b1c19] mt-1">
+                  Group command center
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-5 border-b border-[#ddc0b9]/30 text-[9px] font-journal-label uppercase tracking-wider">
+                {[
+                  { id: 'navigate', label: 'Nav' },
+                  { id: 'chat', label: 'Chat' },
+                  { id: 'care', label: 'Care' },
+                  { id: 'budget', label: 'Money' },
+                  { id: 'location', label: 'Live' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setWorkflowTab(tab.id as typeof workflowTab)}
+                    className={`py-3 transition-colors ${
+                      workflowTab === tab.id
+                        ? 'bg-[#8f361d] text-white'
+                        : 'bg-[#fbf9f4] text-[#89726c] hover:bg-[#f0eee9]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-4">
+                {workflowTab === 'navigate' && (
+                  trip && firstDayItems.length > 0 ? (
+                    <ChecklistNavigation
+                      dayNumber={trip.days[0].dayNumber}
+                      items={firstDayItems.map((item, index) => ({
+                        id: item.id,
+                        name: item.name,
+                        type: item.type,
+                        time: `${String(9 + index * 2).padStart(2, '0')}:00`,
+                        description: item.description || 'Planned group stop',
+                        isCompleted: false,
+                        estimatedDurationMinutes: item.estimatedDurationMinutes || 60,
+                      }))}
+                      onNavigate={(itemId) => {
+                        const item = firstDayItems.find(i => i.id === itemId);
+                        if (item) setSelectedItem(item);
+                      }}
+                    />
+                  ) : (
+                    <div className="p-6 text-center text-xs text-[#89726c] bg-[#f0eee9]/50 rounded-xl">
+                      Generate an itinerary to activate checklist navigation.
+                    </div>
+                  )
+                )}
+
+                {workflowTab === 'chat' && currentUserId && (
+                  <div className="h-[440px]">
+                    <GroupChat groupId={selectedGroupId} currentUserId={currentUserId} />
+                  </div>
+                )}
+
+                {workflowTab === 'care' && (
+                  <div className="space-y-4">
+                    <MedicalSharingConsent
+                      key={`${selectedGroupId}-${groupDetails?.currentMembership?.medicalSharingConsent ? 'shared' : 'hidden'}`}
+                      groupId={selectedGroupId}
+                      initialConsent={!!groupDetails?.currentMembership?.medicalSharingConsent}
+                      onConsentChange={() => loadGroupDetails(selectedGroupId)}
+                    />
+                    <GroupMedicalOverview
+                      members={groupDetails?.members || []}
+                      isAuthorized={!!groupDetails?.currentMembership?.medicalSharingConsent}
+                    />
+                  </div>
+                )}
+
+                {workflowTab === 'budget' && trip && currentUserId && (
+                  <ExpenseTracker
+                    key={`${trip.id}-${expenseRows.length}`}
+                    tripId={trip.id}
+                    currentUserId={currentUserId}
+                    groupMembers={groupMembers}
+                    initialExpenses={expenseTrackerRows}
+                    totalBudget={trip.totalBudget || 0}
+                  />
+                )}
+
+                {workflowTab === 'budget' && !trip && (
+                  <div className="p-6 text-center text-xs text-[#89726c] bg-[#f0eee9]/50 rounded-xl">
+                    Create the trip itinerary before tracking shared expenses.
+                  </div>
+                )}
+
+                {workflowTab === 'location' && currentUserId && (
+                  <LiveLocationMap
+                    groupId={selectedGroupId}
+                    currentUserId={currentUserId}
+                    currentUserName={currentUserName}
+                    initialCenter={
+                      trip?.days?.[0]?.items?.find(item => item.lat && item.lng)
+                        ? {
+                            lat: trip.days[0].items.find(item => item.lat && item.lng)!.lat!,
+                            lng: trip.days[0].items.find(item => item.lat && item.lng)!.lng!,
+                          }
+                        : { lat: 20.5937, lng: 78.9629 }
+                    }
+                  />
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Detailed Item Assistant details (simulating interactive map card details) */}
           {selectedItem && (

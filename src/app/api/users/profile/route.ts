@@ -50,11 +50,6 @@ export async function POST(req: NextRequest) {
       set: { ...data, embeddingVector, updatedAt: new Date() },
     });
 
-    // Mark user as onboarded
-    await db.update(users)
-      .set({ isOnboarded: true })
-      .where(eq(users.id, session.user.id));
-
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -93,7 +88,7 @@ export async function GET() {
         name: user?.name || null
       }
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Failed to retrieve profile' }, { status: 500 });
   }
 }

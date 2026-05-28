@@ -9,11 +9,12 @@ services:
       - .env.local
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgres://user:password@db:5432/sahyatri
+      - DATABASE_URL=postgres://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-sahyatri}
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - ML_SERVICE_URL=http://ml-service:8000
       - AUTH_TRUST_HOST=true
-      - AUTH_SECRET=9210c4f8d9b2a6f1e8a3c5d7b6a9e1f8
-      - NEXTAUTH_SECRET=9210c4f8d9b2a6f1e8a3c5d7b6a9e1f8
+      - AUTH_SECRET=${AUTH_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
       - db
       - ml-service
@@ -30,9 +31,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=sahyatri
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-sahyatri}
     ports:
       - "5432:5432"
     volumes:

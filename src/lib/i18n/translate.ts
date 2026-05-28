@@ -25,6 +25,7 @@ export async function translateText(text: string, targetLang: string): Promise<s
 }
 
 export async function detectLanguage(text: string): Promise<string> {
+  void text;
   // In production: Call Google Cloud Translation API
   // const [detection] = await translate.detect(text);
   

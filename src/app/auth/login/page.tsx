@@ -27,10 +27,10 @@ export default function LoginPage() {
       if (res?.error) {
         setError('Invalid email or passcode. Please try again.');
       } else {
-        router.push('/onboarding');
+        router.push('/dashboard');
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
@@ -38,7 +38,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/onboarding' });
+    signIn('google', { callbackUrl: '/dashboard' });
   };
 
   return (
@@ -168,7 +168,7 @@ export default function LoginPage() {
 
         <div className="mt-8 flex flex-col items-center">
           <div className="h-px w-24 bg-[#ddc0b9]/40 mb-4"></div>
-          <p className="font-journal-headline text-lg text-[#56423d] italic opacity-60">"Your next chapter starts here."</p>
+          <p className="font-journal-headline text-lg text-[#56423d] italic opacity-60">&quot;Your next chapter starts here.&quot;</p>
         </div>
       </main>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, ShieldAlert, CheckCircle, Info } from 'lucide-react';
+import { Shield, ShieldAlert, Info } from 'lucide-react';
 
 interface MedicalSharingConsentProps {
   groupId: string;
@@ -74,7 +74,7 @@ export default function MedicalSharingConsent({ groupId, initialConsent, onConse
           <div className="flex items-start gap-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100 text-xs text-blue-800">
             <Info size={14} className="flex-shrink-0 mt-0.5 text-blue-500" />
             <p>
-              When enabled, your group members will know about basic condition categories (e.g. "Diabetes", "Allergies") to better support you in emergencies. Specific medications and contacts are only used by the AI emergency router.
+              When enabled, your group members will know about basic condition categories (e.g. &ldquo;Diabetes&rdquo;, &ldquo;Allergies&rdquo;) to better support you in emergencies. Specific medications and contacts are only used by the AI emergency router.
             </p>
           </div>
         </div>

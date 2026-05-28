@@ -17,7 +17,8 @@ export function generateReminderPayload(schedule: MedicationSchedule, currentTim
     body: `Dosage: ${schedule.dosage}. ${schedule.instructions}`,
     data: {
       url: `/safety/medications`,
-      medicationId: schedule.id
+      medicationId: schedule.id,
+      scheduledFor: currentTime,
     }
   };
 }

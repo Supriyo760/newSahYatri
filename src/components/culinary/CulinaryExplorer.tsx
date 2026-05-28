@@ -22,10 +22,9 @@ interface CulinaryExplorerProps {
   userPreferences: any;
 }
 
-export default function CulinaryExplorer({ destination, recommendations, userPreferences }: CulinaryExplorerProps) {
+export default function CulinaryExplorer({ destination, recommendations }: CulinaryExplorerProps) {
   const [filter, setFilter] = useState<'all' | 'street' | 'fine' | 'gem'>('all');
 
-  // Stub filtering logic
   const filtered = recommendations.filter(r => {
     if (filter === 'all') return true;
     if (filter === 'gem') return r.isLocalGem;

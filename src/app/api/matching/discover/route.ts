@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { personalityProfiles, users } from '@/db/schema';
+import { medicalProfiles, personalityProfiles, users } from '@/db/schema';
 import { eq, ne, and } from 'drizzle-orm';
 import { getCompatibility } from '@/lib/matching/compatibility';
+import { mlEndpoint } from '@/services/ml';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
         age: users.age,
         gender: users.gender,
         nationality: users.nationality,
+        isVerified: users.isVerified,
       })
       .from(personalityProfiles)
       .innerJoin(users, eq(personalityProfiles.userId, users.id))
@@ -52,12 +54,12 @@ export async function GET(req: NextRequest) {
     // 3. Compute compatibility for all pairs and query AI microservice
     const matches = [];
     for (const other of otherProfiles) {
-      const matchDetails = await getCompatibility(myProfile as any, other as any);
+      const matchDetails = await getCompatibility(myProfile, other);
       
       // Call Python FastAPI for conflict prediction
       let conflictProbability = 0;
       try {
-        const mlRes = await fetch('http://127.0.0.1:8000/api/ml/matching/conflict', {
+        const mlRes = await fetch(mlEndpoint('/api/ml/matching/conflict'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -70,15 +72,22 @@ export async function GET(req: NextRequest) {
           const mlData = await mlRes.json();
           conflictProbability = mlData.conflict_probability;
         }
-      } catch (err) {
+      } catch {
         console.warn('FastAPI unavailable, using fallback conflict probability');
         conflictProbability = 0.5;
       }
 
-      // 4. Integrate Trust Scoring (mocked base score + ML factor)
-      // and Medical factor (10% weight as per report)
-      const trustScore = 80; // Placeholder for DB-backed verified trips
-      const medicalFactor = 100; // Placeholder for DB-backed medical compatibility
+      const [myMedical] = await db.select().from(medicalProfiles)
+        .where(eq(medicalProfiles.userId, session.user.id)).limit(1);
+      const [otherMedical] = await db.select().from(medicalProfiles)
+        .where(eq(medicalProfiles.userId, other.userId)).limit(1);
+
+      const myCategories = new Set(myMedical?.conditionCategories || []);
+      const otherCategories = new Set(otherMedical?.conditionCategories || []);
+      const sharedAwarenessReady = Boolean(myMedical?.shareWithGroup && otherMedical?.shareWithGroup);
+      const severeSignals = [...myCategories, ...otherCategories].filter(category => category.includes('severe'));
+      const medicalFactor = severeSignals.length > 0 && !sharedAwarenessReady ? 65 : 100;
+      const trustScore = other.isVerified ? 95 : 75;
       
       const aiAdjustedScore = Math.round(
         (matchDetails.overallScore * 0.8) + // Base compat

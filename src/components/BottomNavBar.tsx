@@ -8,10 +8,10 @@ export default function BottomNavBar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Explore', href: '/', icon: 'explore' },
+    { label: 'Home', href: '/', icon: 'explore' },
+    { label: 'Flow', href: '/dashboard', icon: 'dashboard' },
     { label: 'Partners', href: '/discover', icon: 'group' },
     { label: 'Journal', href: '/itinerary', icon: 'auto_stories' },
-    { label: 'Profile', href: '/onboarding', icon: 'person' },
   ];
 
   return (

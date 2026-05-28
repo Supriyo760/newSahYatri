@@ -201,7 +201,7 @@ export default function RegisterPage() {
 
         <div className="mt-8 flex flex-col items-center">
           <div className="h-px w-24 bg-[#ddc0b9]/40 mb-4"></div>
-          <p className="font-journal-headline text-lg text-[#56423d] italic opacity-60">"Your next chapter starts here."</p>
+          <p className="font-journal-headline text-lg text-[#56423d] italic opacity-60">&quot;Your next chapter starts here.&quot;</p>
         </div>
       </main>
     </div>

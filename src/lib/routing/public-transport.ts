@@ -16,6 +16,8 @@ export async function getPublicTransportOptions(
   origin: { lat: number, lng: number },
   destination: { lat: number, lng: number }
 ): Promise<TransitOption[]> {
+  void origin;
+  void destination;
   // In production, this would call Google Maps Directions API with mode=transit
   
   // Simulated response

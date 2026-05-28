@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, groupMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { findNearbyMedicalFacilities, findNearbyHospitals } from '@/services/google-maps';
+import { findNearbyMedicalFacilities } from '@/services/google-maps';
 
 // Pre-written first aid protocols per condition category
 const FIRST_AID_PROTOCOLS: Record<string, string[]> = {

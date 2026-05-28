@@ -4,7 +4,6 @@
  * It checks the upcoming itineraries for all active trips against real-time weather and traffic.
  */
 
-import { db } from '../db';
 // import { trips, groupMembers } from '../db/schema';
 import { checkAndReplanItinerary } from '../lib/itinerary/replanner';
 import { sendPushNotification } from '../lib/notifications/push';

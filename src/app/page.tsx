@@ -312,7 +312,7 @@ export default function Home() {
               src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" 
               alt="Goa beach sunset" 
             />
-            <p className="font-journal-headline text-base text-[#56423d] italic text-center">Goa's Emerald Veil</p>
+            <p className="font-journal-headline text-base text-[#56423d] italic text-center">Goa&apos;s Emerald Veil</p>
             <p className="font-journal-label text-[8px] text-[#89726c]/60 text-center tracking-wider mt-1">VOL. 01 // ENTRY #45</p>
           </TiltCard>
         </div>
@@ -362,7 +362,7 @@ export default function Home() {
             The intelligent, matchmaker-first travel network. Connect with compatible companions, plan journeys, and discover hidden sanctuaries together.
           </p>
           <Link
-            href="/discover"
+            href="/dashboard"
             className="group bg-[#8f361d] text-white px-12 py-4.5 rounded-full font-journal-label text-xs uppercase tracking-widest hover:bg-[#af4d32] transition-all shadow-tactile hover:shadow-[0_8px_30px_rgb(143,54,29,0.3)] active:scale-95 flex items-center gap-3"
           >
             <span>Begin Exploration</span>
@@ -400,7 +400,7 @@ export default function Home() {
                 The Journal — Vol. 01
               </span>
               <h3 className="font-journal-headline text-4xl text-[#8f361d] leading-tight">
-                Travel isn't about the distance, but the depth of the encounter.
+                Travel isn&apos;t about the distance, but the depth of the encounter.
               </h3>
               <p className="font-journal-body text-base text-[#56423d] leading-relaxed">
                 We believe in the slow reveal. In the quiet conversations with Himalayan monks and the scent of salt on a secluded beach. SahYatri is your curated companion for the soulful, the hidden, and the genuinely authentic.
@@ -484,7 +484,7 @@ export default function Home() {
                     &ldquo;
                   </span>
                   <h3 className="font-journal-headline text-2xl text-[#8f361d] mb-6 italic leading-relaxed">
-                    &ldquo;The most beautiful thing I found wasn't the scenery, but the shared silence of the mountains with a local herder. That moment is etched in my soul.&rdquo;
+                    &ldquo;The most beautiful thing I found wasn&apos;t the scenery, but the shared silence of the mountains with a local herder. That moment is etched in my soul.&rdquo;
                   </h3>
                   <div className="flex items-center gap-4">
                     <img
@@ -522,7 +522,7 @@ export default function Home() {
             </span>
             <div className="h-[1px] bg-gradient-to-r from-transparent via-[#89726c] to-transparent w-24 my-6" />
             <h2 className="font-journal-headline text-3xl md:text-5xl text-[#8f361d] italic leading-tight">
-              Your story is the only map you'll ever truly need.
+              Your story is the only map you&apos;ll ever truly need.
             </h2>
             <div className="h-[1px] bg-gradient-to-r from-transparent via-[#89726c] to-transparent w-24 my-6" />
             <p className="font-journal-body text-base text-[#89726c] max-w-md mx-auto mb-10">

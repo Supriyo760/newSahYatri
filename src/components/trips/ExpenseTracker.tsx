@@ -15,7 +15,6 @@ interface Expense {
 }
 
 interface ExpenseTrackerProps {
-  groupId: string;
   tripId: string;
   currentUserId: string;
   groupMembers: { id: string; name: string }[];
@@ -23,8 +22,68 @@ interface ExpenseTrackerProps {
   totalBudget?: number;
 }
 
-export default function ExpenseTracker({ groupId, tripId, currentUserId, groupMembers, initialExpenses, totalBudget = 0 }: ExpenseTrackerProps) {
+export default function ExpenseTracker({ tripId, currentUserId, groupMembers, initialExpenses, totalBudget = 0 }: ExpenseTrackerProps) {
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [showForm, setShowForm] = useState(false);
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('food');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const currentUserName = groupMembers.find(m => m.id === currentUserId)?.name || 'You';
+
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    try {
+      const value = Number(amount);
+      if (!description.trim() || !Number.isFinite(value) || value <= 0) {
+        throw new Error('Enter a description and valid amount.');
+      }
+
+      const equalShare = groupMembers.length > 0 ? value / groupMembers.length : value;
+      const res = await fetch(`/api/trips/${tripId}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: description.trim(),
+          amount: value,
+          category,
+          splitType: 'equal',
+          splits: groupMembers.map(member => ({ userId: member.id, amount: equalShare })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Could not save expense');
+      }
+
+      setExpenses(prev => [
+        {
+          id: data.expenseId,
+          description: description.trim(),
+          amount: value,
+          paidBy: currentUserId,
+          paidByName: currentUserName,
+          splitType: 'equal',
+          date: new Date().toISOString(),
+          category,
+        },
+        ...prev,
+      ]);
+      setDescription('');
+      setAmount('');
+      setCategory('food');
+      setShowForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save expense');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const budgetPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
@@ -56,7 +115,10 @@ export default function ExpenseTracker({ groupId, tripId, currentUserId, groupMe
             <PieChart size={20} className="text-blue-400" />
             Group Budget
           </h2>
-          <button className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+          <button
+            onClick={() => setShowForm(prev => !prev)}
+            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          >
             <Plus size={16} /> Add Expense
           </button>
         </div>
@@ -88,6 +150,47 @@ export default function ExpenseTracker({ groupId, tripId, currentUserId, groupMe
         )}
       </div>
 
+      {showForm && (
+        <form onSubmit={handleAddExpense} className="p-4 border-b border-gray-200 bg-blue-50/40 grid grid-cols-1 md:grid-cols-12 gap-3">
+          <input
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Expense description"
+            className="md:col-span-5 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            required
+          />
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="Amount"
+            className="md:col-span-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            required
+          />
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="md:col-span-3 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="food">Food</option>
+            <option value="transport">Transport</option>
+            <option value="attraction">Attraction</option>
+            <option value="lodging">Lodging</option>
+            <option value="other">Other</option>
+          </select>
+          <button
+            type="submit"
+            disabled={saving}
+            className="md:col-span-2 bg-slate-900 text-white rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Split'}
+          </button>
+          {error && <p className="md:col-span-12 text-xs font-semibold text-rose-600">{error}</p>}
+        </form>
+      )}
+
       <div className="flex flex-col md:flex-row">
         {/* Balances */}
         <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 bg-gray-50 p-5">
@@ -101,7 +204,6 @@ export default function ExpenseTracker({ groupId, tripId, currentUserId, groupMe
               const bal = balances[member.id] || 0;
               const isOwed = bal > 0.01;
               const owes = bal < -0.01;
-              const settled = !isOwed && !owes;
 
               return (
                 <div key={member.id} className="flex items-center justify-between">

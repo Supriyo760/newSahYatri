@@ -13,7 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
     }
 
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'secret_placeholder';
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret || secret.toLowerCase().includes('placeholder')) {
+      return NextResponse.json({ error: 'Razorpay webhook secret is not configured' }, { status: 500 });
+    }
     
     // Verify Razorpay signature
     const expectedSignature = crypto

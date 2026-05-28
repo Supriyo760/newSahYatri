@@ -3,10 +3,8 @@
  * Run via: npx tsx src/db/seed-dishes.ts
  */
 
-import { db } from './index';
 // Assuming `regionalDishes` table exists in schema.ts
 // import { regionalDishes } from './schema';
-import { nanoid } from 'nanoid';
 
 const SAMPLE_DISHES = [
   {

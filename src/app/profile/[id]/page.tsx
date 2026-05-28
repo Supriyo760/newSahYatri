@@ -8,6 +8,8 @@ import Header from '@/components/Header';
 import BottomNavBar from '@/components/BottomNavBar';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import StartPreMatchChat from '@/components/chat/StartPreMatchChat';
+import { mlEndpoint } from '@/services/ml';
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -43,13 +45,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   let aiAdjustedScore = 0;
   
   if (myProfile && targetProfile && id !== session.user.id) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     matchDetails = await getCompatibility(myProfile as any, targetProfile as any);
     
     // Simulate API call to ML service for conflict prediction
     let conflictProbability = 0.5;
     try {
-      const mlRes = await fetch('http://127.0.0.1:8000/api/ml/matching/conflict', {
+      const mlRes = await fetch(mlEndpoint('/api/ml/matching/conflict'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,6 +234,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
             </div>
+          )}
+
+          {targetProfile && id !== session.user.id && (
+            <StartPreMatchChat
+              recipientId={id}
+              currentUserId={session.user.id}
+              partnerName={targetUser.name}
+            />
           )}
 
         </div>

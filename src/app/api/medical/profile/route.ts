@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { medicalProfiles } from '@/db/schema';
+import { medicalProfiles, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { encryptField, decryptField } from '@/lib/medical/encryption';
 import { z } from 'zod';
@@ -72,6 +72,10 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       },
     });
+
+    await db.update(users)
+      .set({ isOnboarded: true, updatedAt: new Date() })
+      .where(eq(users.id, session.user.id));
 
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {

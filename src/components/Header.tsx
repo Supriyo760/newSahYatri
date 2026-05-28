@@ -97,6 +97,16 @@ export default function Header() {
             </Link>
 
             <Link
+              href="/dashboard"
+              onClick={toggleDrawer}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 hover:bg-[#f0eee9] ${
+                pathname.startsWith('/dashboard') ? 'text-[#8f361d] font-bold bg-[#fdb55c]/10' : 'text-[#56423d]'
+              }`}
+            >
+              <span className="font-journal-body text-base">Command Center</span>
+            </Link>
+
+            <Link
               href="/discover"
               onClick={toggleDrawer}
               className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 hover:bg-[#f0eee9] ${

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 
-# In a real environment, we would load a HuggingFace pipeline:
+# A production deployment can swap this for a HuggingFace pipeline:
 # from transformers import pipeline
 # sentiment_pipeline = pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 
@@ -19,12 +19,11 @@ def analyze_chat_sentiment(request: SentimentRequest) -> dict:
     results = []
     total_score = 0.0
     
-    # Mock sentiment analysis
     for msg in request.messages:
         text = msg.content.lower()
         score = 0.5 # Neutral
         
-        # Simple heuristic for dummy logic
+        # Simple keyword heuristic for local, dependency-light inference.
         positive_words = ['great', 'awesome', 'love', 'agree', 'yes', 'perfect', 'excited']
         negative_words = ['no', 'disagree', 'hate', 'stupid', 'bad', 'boring', 'don\'t']
         

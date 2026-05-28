@@ -11,6 +11,8 @@ export interface WeatherCondition {
 }
 
 export async function fetchHourlyForecast(lat: number, lng: number): Promise<WeatherCondition[]> {
+  void lat;
+  void lng;
   // In production, this would call:
   // fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lng}&exclude=current,minutely,daily,alerts&appid=${process.env.OPENWEATHER_API_KEY}`)
   

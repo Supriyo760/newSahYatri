@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
-import { Sparkles, MapPin, Compass, Info } from 'lucide-react';
+import { MapPin, Compass, Info } from 'lucide-react';
 
 interface HiddenGem {
   id: string;
@@ -25,17 +24,7 @@ interface GemMapProps {
 
 export default function GemMap({ gems, cityCenter }: GemMapProps) {
   const [selectedGem, setSelectedGem] = useState<HiddenGem | null>(null);
-  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-
-  if (!mapsApiKey || mapsApiKey.includes('Placeholder')) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-8 flex flex-col items-center justify-center text-center h-[500px]">
-        <Sparkles size={48} className="text-indigo-300 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Gem Map Unavailable</h3>
-        <p className="text-gray-500 max-w-md">Google Maps API key is required to render the interactive discovery map.</p>
-      </div>
-    );
-  }
+  const mapCenter = selectedGem ? { lat: selectedGem.lat, lng: selectedGem.lng } : cityCenter;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden flex flex-col md:flex-row h-[600px] relative">
@@ -46,30 +35,30 @@ export default function GemMap({ gems, cityCenter }: GemMapProps) {
           <span className="text-sm font-semibold tracking-wide">Hidden Gem Discovery</span>
         </div>
 
-        <APIProvider apiKey={mapsApiKey}>
-          <Map
-            defaultCenter={cityCenter}
-            defaultZoom={12}
-            mapId="sahyatri_gem_map"
-            gestureHandling="greedy"
-            disableDefaultUI={false}
-          >
-            {gems.map((gem) => (
-              <AdvancedMarker 
-                key={gem.id} 
-                position={{ lat: gem.lat, lng: gem.lng }}
-                onClick={() => setSelectedGem(gem)}
-              >
-                <Pin 
-                  background={selectedGem?.id === gem.id ? '#4f46e5' : '#818cf8'} 
-                  borderColor={selectedGem?.id === gem.id ? '#312e81' : '#4338ca'} 
-                  glyphColor={'#fff'} 
-                  scale={selectedGem?.id === gem.id ? 1.2 : 1}
-                />
-              </AdvancedMarker>
-            ))}
-          </Map>
-        </APIProvider>
+        <iframe
+          src={`https://maps.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&z=13&output=embed`}
+          className="w-full h-full border-0"
+          loading="lazy"
+          title="Hidden gem map"
+          allowFullScreen
+        />
+
+        <div className="absolute bottom-4 left-4 right-4 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+          {gems.map((gem) => (
+            <button
+              key={gem.id}
+              onClick={() => setSelectedGem(gem)}
+              className={`text-left rounded-xl px-3 py-2 border shadow-sm transition-colors ${
+                selectedGem?.id === gem.id
+                  ? 'bg-indigo-600 text-white border-indigo-700'
+                  : 'bg-white/95 text-gray-800 border-indigo-100 hover:bg-indigo-50'
+              }`}
+            >
+              <span className="block text-xs font-bold truncate">{gem.name}</span>
+              <span className="block text-[10px] opacity-80">{gem.gemScore.toFixed(0)} gem score</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Detail Panel */}
@@ -116,7 +105,7 @@ export default function GemMap({ gems, cityCenter }: GemMapProps) {
                   The Local Story
                 </h4>
                 <p className="text-gray-600 text-sm leading-relaxed italic border-l-2 border-indigo-200 pl-3">
-                  "{selectedGem.story}"
+                  &ldquo;{selectedGem.story}&rdquo;
                 </p>
               </div>
 

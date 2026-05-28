@@ -19,7 +19,7 @@ interface CollaborativeItineraryBuilderProps {
 }
 
 export default function CollaborativeItineraryBuilder({ groupId, tripId, initialItems, currentUserId }: CollaborativeItineraryBuilderProps) {
-  const { socket, isConnected } = useSocket({ groupId });
+  const { socket, isConnected } = useSocket({ groupId, userId: currentUserId });
   const [items, setItems] = useState<ItineraryItem[]>(initialItems);
   const [isSaving, setIsSaving] = useState(false);
   const [activeEditors, setActiveEditors] = useState<number>(1);
@@ -82,9 +82,15 @@ export default function CollaborativeItineraryBuilder({ groupId, tripId, initial
   const saveToDb = async () => {
     setIsSaving(true);
     try {
-      // Stub for actual DB save API
-      await new Promise(r => setTimeout(r, 800));
-      console.log('Saved to DB', items);
+      const res = await fetch(`/api/trips/${tripId}/collaborative-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Could not save itinerary');
+      }
     } catch (e) {
       console.error(e);
     } finally {

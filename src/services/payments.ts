@@ -1,35 +1,47 @@
 import Stripe from 'stripe';
 import Razorpay from 'razorpay';
 
-// Initialize Stripe Client
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: '2026-04-22.dahlia', // Use the latest stable API version supported
-  typescript: true,
-});
+function requireConfiguredEnv(name: string) {
+  const value = process.env[name];
+  if (!value || value.toLowerCase().includes('placeholder')) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
 
-// Initialize Razorpay Client
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'secret_placeholder',
-});
+export function getStripe() {
+  return new Stripe(requireConfiguredEnv('STRIPE_SECRET_KEY'), {
+    apiVersion: '2026-04-22.dahlia',
+    typescript: true,
+  });
+}
+
+export function getRazorpay() {
+  return new Razorpay({
+    key_id: requireConfiguredEnv('RAZORPAY_KEY_ID'),
+    key_secret: requireConfiguredEnv('RAZORPAY_KEY_SECRET'),
+  });
+}
 
 /**
  * Generate a Stripe Checkout Session for Premium Subscription
  */
 export async function createStripeSubscriptionSession(userId: string, email: string) {
-  const session = await stripe.checkout.sessions.create({
+  const appUrl = requireConfiguredEnv('NEXT_PUBLIC_APP_URL');
+  const priceId = requireConfiguredEnv('STRIPE_PREMIUM_PRICE_ID');
+  const session = await getStripe().checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'subscription',
     customer_email: email,
     metadata: { userId },
     line_items: [
       {
-        price: process.env.STRIPE_PREMIUM_PRICE_ID || 'price_placeholder',
+        price: priceId,
         quantity: 1,
       },
     ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?upgrade=canceled`,
+    success_url: `${appUrl}/dashboard?upgrade=success`,
+    cancel_url: `${appUrl}/pricing?upgrade=canceled`,
   });
 
   return session;

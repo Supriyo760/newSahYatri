@@ -19,7 +19,7 @@ interface PreMatchChatProps {
 }
 
 export default function PreMatchChat({ chatId, currentUserId, partnerName = 'Anonymous Match' }: PreMatchChatProps) {
-  const { socket, isConnected } = useSocket({ chatId });
+  const { socket, isConnected } = useSocket({ chatId, userId: currentUserId });
   const [messages, setMessages] = useState<PreMatchMessage[]>([]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);

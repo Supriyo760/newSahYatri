@@ -25,7 +25,7 @@ export default function GroupMedicalOverview({ members, isAuthorized }: GroupMed
         </div>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Overview Hidden</h3>
         <p className="text-sm text-gray-600 max-w-sm">
-          You must enable your own medical data sharing before you can view the group's medical overview. This ensures mutual trust.
+          You must enable your own medical data sharing before you can view the group&apos;s medical overview. This ensures mutual trust.
         </p>
       </div>
     );

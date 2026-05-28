@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
-import { expenses, expenseSplits } from '@/db/schema';
+import { expenseSplits, expenses, groupMembers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { z } from 'zod';
+import { getTripForMember } from '@/lib/authz';
+
+const expenseSchema = z.object({
+  description: z.string().trim().min(1).max(300),
+  amount: z.number().positive(),
+  currency: z.string().length(3).default('USD'),
+  splitType: z.enum(['equal', 'custom']).default('equal'),
+  category: z.string().trim().max(50).default('general'),
+  splits: z.array(z.object({
+    userId: z.string().uuid(),
+    amount: z.number().nonnegative(),
+  })).default([]),
+});
 
 export async function GET(
   req: NextRequest,
@@ -14,6 +27,8 @@ export async function GET(
 
   try {
     const { tripId } = await params;
+    const trip = await getTripForMember(session.user.id, tripId);
+    if (!trip) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     
     // Fetch expenses
     const tripExpenses = await db.select()
@@ -46,30 +61,42 @@ export async function POST(
 
   try {
     const { tripId } = await params;
-    const body = await req.json();
+    const trip = await getTripForMember(session.user.id, tripId);
+    if (!trip) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    const body = expenseSchema.parse(await req.json());
     
+    const members = await db
+      .select({ userId: groupMembers.userId })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, trip.groupId));
+    const memberIds = new Set(members.map((member) => member.userId));
+
+    if (body.splits.some((split) => !memberIds.has(split.userId))) {
+      return NextResponse.json({ error: 'Splits must only include trip group members' }, { status: 400 });
+    }
+
     // Simplified transaction logic
-    const expenseId = nanoid();
-    
+    const expenseId = crypto.randomUUID();
+
     await db.insert(expenses).values({
       id: expenseId,
       tripId,
       description: body.description,
       amount: body.amount,
-      currency: body.currency || 'USD',
+      currency: body.currency,
       paidBy: session.user.id,
-      splitType: body.splitType || 'equal',
-      category: body.category || 'general'
+      splitType: body.splitType,
+      category: body.category,
     });
-    
-    // Insert splits
-    if (body.splits && Array.isArray(body.splits)) {
-      const splitValues = body.splits.map((s: any) => ({
-        id: nanoid(),
+
+    if (body.splits.length > 0) {
+      const splitValues = body.splits.map((split) => ({
+        id: crypto.randomUUID(),
         expenseId,
         tripId,
-        userId: s.userId,
-        amountOwed: s.amount
+        userId: split.userId,
+        amountOwed: split.amount,
       }));
       
       await db.insert(expenseSplits).values(splitValues);
@@ -77,6 +104,9 @@ export async function POST(
     
     return NextResponse.json({ status: 'success', expenseId });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: err.issues }, { status: 400 });
+    }
     console.error('Failed to create expense:', err);
     return NextResponse.json({ error: 'Failed to create expense' }, { status: 500 });
   }

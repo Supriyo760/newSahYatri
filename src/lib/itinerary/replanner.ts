@@ -94,7 +94,7 @@ export function suggestAffordableAlternatives(
       type: 'food',
       location: expensiveItem.location,
       startTime: expensiveItem.startTime,
-      estimatedDurationMins: 45
+      estimatedDurationMins: Math.max(30, Math.min(45, budgetThreshold))
     }];
   }
 
@@ -105,7 +105,7 @@ export function suggestAffordableAlternatives(
       type: 'indoor',
       location: expensiveItem.location,
       startTime: expensiveItem.startTime,
-      estimatedDurationMins: 90
+      estimatedDurationMins: Math.max(60, Math.min(90, budgetThreshold * 2))
     }];
   }
 

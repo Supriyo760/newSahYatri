@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get('city')?.toLowerCase() || '';
   const budgetLevel = searchParams.get('budget'); // minimal/average/premium
-  const type = searchParams.get('type'); // street_food/restaurant/fine_dining
+  const cuisineType = searchParams.get('type'); // street_food/restaurant/fine_dining
 
   // Get user food preferences
   const [profile] = await db.select({
@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
         restaurants: results,
         regionalSpecialties: specialties,
         localGems: results.filter(r => r.isLocalGem),
+        requestedType: cuisineType,
         tip: `Try the local specialty: ${specialties[0] || 'Ask locals for recommendations'}`,
       },
     });

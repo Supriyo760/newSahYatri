@@ -23,7 +23,7 @@ interface MedicalProfile {
 }
 
 export default function Safety() {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>({ lat: -8.8139, lng: 115.0884 });
   const [groups, setGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -125,8 +125,6 @@ export default function Safety() {
           setCoords({ lat: -8.8139, lng: 115.0884 });
         }
       );
-    } else {
-      setCoords({ lat: -8.8139, lng: 115.0884 });
     }
 
     // Load active groups
