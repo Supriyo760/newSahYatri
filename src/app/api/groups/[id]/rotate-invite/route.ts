@@ -6,35 +6,39 @@ import { travelGroups, groupMembers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
+  const { id } = await params;
 
   try {
     // 1. Verify user is creator of the group
     const [membership] = await db.select().from(groupMembers)
       .where(
         and(
-          eq(groupMembers.groupId, params.id),
-          eq(groupMembers.userId, session.user.id)
+          eq(groupMembers.groupId, id),
+          eq(groupMembers.userId, session.user.id),
+          eq(groupMembers.role, 'creator')
         )
-      ).limit(1);
+      )
+      .limit(1);
 
-    if (!membership || membership.role !== 'creator') {
-      return errorResponse('FORBIDDEN', 'Only the group creator can rotate the invite code', 403);
+    if (!membership) {
+      return errorResponse('FORBIDDEN', 'Only creator can rotate invite codes', 403);
     }
 
-    const newInviteCode = nanoid(6).toUpperCase();
-    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    // 2. Generate new code and update
+    const newCode = nanoid(10).toUpperCase();
+    const newExpiry = new Date();
+    newExpiry.setDate(newExpiry.getDate() + 7);
 
-    // 2. Update group
     const [updatedGroup] = await db.update(travelGroups)
       .set({
-        inviteCode: newInviteCode,
-        inviteExpiresAt: newExpiresAt,
+        inviteCode: newCode,
+        inviteExpiresAt: newExpiry,
         updatedAt: new Date(),
       })
-      .where(eq(travelGroups.id, params.id))
+      .where(eq(travelGroups.id, id))
       .returning();
 
     return successResponse({ 

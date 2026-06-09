@@ -4,10 +4,10 @@ import BottomNavBar from '@/components/BottomNavBar';
 import { db } from '@/db';
 import { travelGroups, trips, users, groupMembers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 
-export default async function GroupDetailPage({ params }: { params: { id: string } }) {
+export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return (
@@ -17,9 +17,11 @@ export default async function GroupDetailPage({ params }: { params: { id: string
     );
   }
 
+  const { id } = await params;
+
   // Fetch Group
   const group = await db.query.travelGroups.findFirst({
-    where: eq(travelGroups.id, params.id),
+    where: eq(travelGroups.id, id),
   });
 
   if (!group) return notFound();
