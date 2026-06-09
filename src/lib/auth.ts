@@ -65,11 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.image = user.image;
         token.isOnboarded = (user as UserWithOnboarding).isOnboarded;
-      }
-      if (trigger === 'update' && session?.image) {
-        token.image = session.image;
       }
       const patch = session as SessionPatch | undefined;
       if (trigger === 'update' && typeof patch?.isOnboarded === 'boolean') {
@@ -80,7 +76,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        session.user.image = token.image as string;
         (session.user as typeof session.user & { isOnboarded?: unknown }).isOnboarded = token.isOnboarded;
       }
       return session;

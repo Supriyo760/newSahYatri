@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
 /**
  * API Route: /api/place-photo?q=<search_query>
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
   const lng = req.nextUrl.searchParams.get('lng');
 
   if (!query && !lat) {
-    return NextResponse.json({ error: 'Missing query parameter' }, { status: 400 });
+    return errorResponse('BAD_REQUEST', 'Missing query parameter', 400);
   }
 
   const isPlaceholder = !MAPS_API_KEY || MAPS_API_KEY.includes('Placeholder') || MAPS_API_KEY.includes('placeholder');

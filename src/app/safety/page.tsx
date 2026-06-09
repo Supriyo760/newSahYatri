@@ -72,45 +72,7 @@ export default function Safety() {
     setNewMedDosage('');
   };
 
-  // AI Chatbot State
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'bot' | 'user'; content: string }>>([
-    { sender: 'bot', content: 'Greetings, traveler! I am your SahYatri AI Safety Assistant. Ask me any first-aid question, symptoms concern, or local medical emergency protocols.' }
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    
-    const userMsg = chatInput.trim();
-    setChatMessages(prev => [...prev, { sender: 'user', content: userMsg }]);
-    setChatInput('');
-    setChatLoading(true);
-
-    try {
-      const res = await fetch('/api/chat/bot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setChatMessages(prev => [...prev, { sender: 'bot', content: data.reply || data.data || 'I am reviewing your symptoms. Please call 112 if condition worsens.' }]);
-      } else {
-        throw new Error('AI could not resolve');
-      }
-    } catch {
-      // Elegant fallback response
-      setChatMessages(prev => [...prev, { 
-        sender: 'bot', 
-        content: `I have noted your concern regarding "${userMsg}". For your safety, if you are experiencing severe breathing difficulties, chest tightness, or allergic shock, please administer first-aid immediately and head to the nearest trauma center.` 
-      }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
+  // Removed AI Chatbot State and methods per MVP constraints
 
   // Get current position
   useEffect(() => {
@@ -577,90 +539,14 @@ export default function Safety() {
 
       </main>
 
-      {/* Floating AI Safety Assistant Chatbot Bubble & Drawer */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {/* Chat Drawer */}
-        {chatOpen && (
-          <div className="w-[360px] h-[480px] bg-[#fbf9f4]/95 backdrop-blur-md border border-[#ddc0b9] rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-4 animate-fade-in relative">
-            {/* Header */}
-            <div className="bg-[#1b1c19] text-[#fbf9f4] p-4 flex justify-between items-center border-b border-[#ddc0b9]/20">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#fdb55c] animate-pulse" />
-                <div className="text-left">
-                  <h4 className="font-journal-headline text-lg text-[#fdb55c] italic">SahYatri AI Safety</h4>
-                  <p className="text-[9px] text-[#89726c] uppercase tracking-wider">Expert medical & first-aid support</p>
-                </div>
-              </div>
-              <button onClick={() => setChatOpen(false)} className="text-[#89726c] hover:text-[#fdb55c] text-xs font-bold">
-                ✕
-              </button>
-            </div>
-
-            {/* Messages box */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin">
-              {chatMessages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] p-3 rounded-xl text-xs leading-relaxed ${
-                      msg.sender === 'user'
-                        ? 'bg-[#8f361d] text-white rounded-br-none shadow-md'
-                        : 'bg-[#f0eee9] text-[#1b1c19] rounded-bl-none border border-[#ddc0b9]/30 shadow-sm'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-[#f0eee9] text-[#89726c] p-3 rounded-xl rounded-bl-none border border-[#ddc0b9]/30 text-xs italic animate-pulse">
-                    Consulting medical handbook...
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input form */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-[#ddc0b9]/30 flex gap-2 bg-[#f0eee9]/40">
-              <input
-                type="text"
-                placeholder="Ask safety bot..."
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                className="flex-1 bg-white border border-[#ddc0b9]/40 rounded-lg px-3 py-2 text-xs"
-                required
-              />
-              <button
-                type="submit"
-                disabled={chatLoading}
-                className="bg-[#8f361d] text-white px-4 rounded-lg font-journal-label text-[10px] uppercase tracking-widest hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95 font-bold disabled:opacity-50"
-              >
-                SEND
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* Chat Bubble trigger */}
-        <button
-          onClick={() => setChatOpen(!chatOpen)}
-          className="w-14 h-14 rounded-full bg-[#ba1a1a] text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
+      {/* Static First-Aid Registry Access */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Link 
+          href="/medical"
+          className="bg-[#ba1a1a] text-white px-6 py-3 rounded-full font-journal-label text-[10px] tracking-widest uppercase shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#ba1a1a]"
         >
-          {chatOpen ? (
-            <span className="text-xl font-bold">✕</span>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-[3.65C2.457 16.087 1 13.913 1 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-            </svg>
-          )}
-          {/* Pulsing indicator tag */}
-          {!chatOpen && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#fdb55c] border-2 border-white animate-ping" />
-          )}
-        </button>
+          VIEW FIRST-AID REGISTRY
+        </Link>
       </div>
 
       <BottomNavBar />

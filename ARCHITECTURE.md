@@ -11,7 +11,7 @@ The system utilizes a split architecture:
 ## 3. Data Layer
 - **PostgreSQL**: Primary datastore.
 - **Drizzle ORM**: Used for type-safe schema definitions (`src/db/schema.ts`).
-- **AES-256 Encryption**: Medical profiles and emergency contacts are encrypted at rest using `crypto.createCipheriv`.
+- **AES-256-GCM Encryption**: Medical profiles and emergency contacts are encrypted at rest using Node.js native `crypto.createCipheriv` with AES-256-GCM authenticated encryption to prevent tampering.
 
 ## 4. Real-Time Interactions (Socket.io)
 Socket.io is initialized in `server.ts` alongside Next.js. It powers:

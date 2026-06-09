@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { groupMembers, medicalProfiles, travelGroups, users } from '@/db/schema';
@@ -10,7 +11,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
@@ -23,12 +24,12 @@ export async function GET(
       .limit(1);
 
     if (!membership) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return errorResponse('FORBIDDEN', 'Forbidden', 403);
     }
 
     const [group] = await db.select().from(travelGroups).where(eq(travelGroups.id, groupId)).limit(1);
     if (!group) {
-      return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+      return errorResponse('NOT_FOUND', 'Group not found', 404);
     }
 
     const members = await db
@@ -73,6 +74,6 @@ export async function GET(
     });
   } catch (err) {
     console.error('Failed to load group details:', err);
-    return NextResponse.json({ error: 'Failed to load group details' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to load group details', 500);
   }
 }

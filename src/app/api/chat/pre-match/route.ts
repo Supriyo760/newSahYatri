@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { preMatchChats, users } from '@/db/schema';
@@ -12,7 +13,7 @@ const createChatSchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
@@ -20,12 +21,12 @@ export async function POST(req: NextRequest) {
     const data = createChatSchema.parse(body);
 
     if (data.recipientId === session.user.id) {
-      return NextResponse.json({ error: 'Cannot start a pre-match chat with yourself' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Cannot start a pre-match chat with yourself', 400);
     }
 
     const [recipient] = await db.select().from(users).where(eq(users.id, data.recipientId)).limit(1);
     if (!recipient) {
-      return NextResponse.json({ error: 'Traveler not found' }, { status: 404 });
+      return errorResponse('NOT_FOUND', 'Traveler not found', 404);
     }
 
     const [existing] = await db
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     if (existing) {
-      return NextResponse.json({ data: existing });
+      return successResponse(existing, 200);
     }
 
     const [chat] = await db
@@ -56,12 +57,12 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json({ data: chat }, { status: 201 });
+    return successResponse(chat, 201);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     console.error('Failed to create pre-match chat:', err);
-    return NextResponse.json({ error: 'Failed to create pre-match chat' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to create pre-match chat', 500);
   }
 }

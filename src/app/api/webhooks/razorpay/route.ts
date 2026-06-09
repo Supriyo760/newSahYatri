@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import crypto from 'crypto';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, webhookEvents } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
@@ -10,12 +11,12 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get('x-razorpay-signature');
 
     if (!signature) {
-      return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Missing signature', 400);
     }
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret || secret.toLowerCase().includes('placeholder')) {
-      return NextResponse.json({ error: 'Razorpay webhook secret is not configured' }, { status: 500 });
+      return errorResponse('INTERNAL_ERROR', 'Razorpay webhook secret is not configured', 500);
     }
     
     // Verify Razorpay signature
@@ -25,10 +26,29 @@ export async function POST(req: NextRequest) {
       .digest('hex');
 
     if (expectedSignature !== signature) {
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Invalid signature', 400);
     }
 
     const event = JSON.parse(payload);
+
+    // Idempotency lock
+    const eventId = event.payload?.payment?.entity?.id || event.payload?.subscription?.entity?.id;
+    if (eventId) {
+      try {
+        await db.insert(webhookEvents).values({
+          provider: 'razorpay',
+          eventId: eventId,
+          eventType: event.event,
+        });
+      } catch (err: any) {
+        if (err.code === '23505' || err.message?.includes('unique constraint')) {
+          console.log(`[RAZORPAY WEBHOOK] Event ${eventId} already processed. Skipping.`);
+          return NextResponse.json({ status: 'ok' });
+        }
+        console.error('Failed to save webhook event ID:', err);
+        return errorResponse('INTERNAL_ERROR', 'Failed to acquire idempotency lock', 500);
+      }
+    }
 
     switch (event.event) {
       case 'payment.captured': {
@@ -57,6 +77,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: 'ok' });
   } catch (err) {
     console.error('Razorpay Webhook Error:', err);
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Webhook processing failed', 500);
   }
 }

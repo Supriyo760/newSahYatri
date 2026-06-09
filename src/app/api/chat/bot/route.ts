@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { translateText, detectLanguage } from '@/lib/i18n/translate';
 
 // Simulated Chatbot Logic
@@ -7,7 +8,7 @@ export async function POST(req: NextRequest) {
     const { message, targetLang = 'en' } = await req.json();
 
     if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Message is required', 400);
     }
 
     // 1. Detect language of incoming message (simulated)
@@ -35,6 +36,6 @@ export async function POST(req: NextRequest) {
 
   } catch (err) {
     console.error('Chatbot error:', err);
-    return NextResponse.json({ error: 'Failed to process message' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to process message', 500);
   }
 }

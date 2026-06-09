@@ -1,33 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { z } from 'zod';
-
-const avatarSchema = z.object({
-  avatarUrl: z.string().min(1),
-});
+import { uploadFile } from '@/lib/storage';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
-    const body = await req.json();
-    const { avatarUrl } = avatarSchema.parse(body);
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    
+    if (!file) {
+      return errorResponse('BAD_REQUEST', 'No file provided', 400);
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return errorResponse('BAD_REQUEST', 'File too large', 400);
+    }
+
+    const avatarUrl = await uploadFile(file, 'avatars');
 
     await db.update(users)
       .set({ avatarUrl, updatedAt: new Date() })
       .where(eq(users.id, session.user.id));
 
-    return NextResponse.json({ data: { success: true, avatarUrl } }, { status: 200 });
+    return successResponse({ success: true, avatarUrl }, 200);
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Failed to update avatar' }, { status: 500 });
+    console.error('Avatar upload error:', err);
+    return errorResponse('INTERNAL_ERROR', 'Failed to update avatar', 500);
   }
 }

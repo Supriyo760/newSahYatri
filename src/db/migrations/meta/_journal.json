@@ -15,6 +15,13 @@
       "when": 1779967361490,
       "tag": "0001_daily_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781040998594,
+      "tag": "0002_dry_rockslide",
+      "breakpoints": true
     }
   ]
 }

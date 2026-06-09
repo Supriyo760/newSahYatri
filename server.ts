@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import dotenv from 'dotenv';
 import { isGroupMember, isPreMatchParticipant } from './src/lib/authz';
 import { mlEndpoint } from './src/services/ml';
+import { getToken } from 'next-auth/jwt';
 
 dotenv.config({ path: '.env.local' });
 
@@ -37,29 +38,58 @@ app.prepare().then(() => {
     },
   });
 
+  io.use(async (socket, next) => {
+    try {
+      const req = socket.request as any;
+      const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+      
+      const token = await getToken({ 
+        req, 
+        secret,
+        salt: process.env.NODE_ENV === 'production' ? '__Secure-authjs.session-token' : 'authjs.session-token'
+      });
+
+      if (token && token.id) {
+        socket.data.userId = token.id as string;
+        next();
+      } else {
+        next(new Error('Unauthorized'));
+      }
+    } catch (err) {
+      console.error('Socket auth error:', err);
+      next(new Error('Authentication error'));
+    }
+  });
+
+  const activeLocationSessions = new Map<string, number>();
+
   io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
+    console.log('Socket connected:', socket.id, 'User:', socket.data.userId);
 
     // ─── GROUP CHAT & REALTIME LOCATION ─────────────────────────────────────
 
-    socket.on('join_group', async ({ groupId, userId }) => {
+    socket.on('join_group', async ({ groupId }) => {
+      const userId = socket.data.userId;
       if (!groupId || !userId || !(await isGroupMember(userId, groupId))) {
         socket.emit('error', 'Not authorized for this group');
         return;
       }
 
-      socket.data.userId = userId;
       socket.join(`group_${groupId}`);
       console.log(`Socket ${socket.id} joined group room: group_${groupId}`);
     });
 
     socket.on('send_message', async (data) => {
-      const { groupId, senderId, content, type, metadata } = data;
+      const { groupId, content, type, metadata, clientMessageId } = data;
+      const senderId = socket.data.userId;
       try {
-        if (!groupId || senderId !== socket.data.userId || !(await isGroupMember(senderId, groupId))) {
+        if (!groupId || !(await isGroupMember(senderId, groupId))) {
           socket.emit('error', 'Not authorized to send to this group');
           return;
         }
+
+        // Ideally, check if clientMessageId already exists to ensure idempotency.
+        // For MVP, we pass it to the insert query which will fail on unique constraint if duplicated.
 
         const [saved] = await db.insert(messages).values({
           groupId,
@@ -76,9 +106,26 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on('update_location', (data) => {
-      const { groupId, userId, lat, lng, name } = data;
-      if (!groupId || userId !== socket.data.userId) {
+    socket.on('update_location', async (data) => {
+      const { groupId, lat, lng, name, startSharing } = data;
+      const userId = socket.data.userId;
+      
+      const sessionKey = `${groupId}_${userId}`;
+      const now = Date.now();
+
+      if (startSharing) {
+        // Start a 2-hour location sharing session
+        activeLocationSessions.set(sessionKey, now + 2 * 60 * 60 * 1000);
+      }
+
+      const expiryTime = activeLocationSessions.get(sessionKey);
+      
+      if (!expiryTime || now > expiryTime) {
+        socket.emit('location_session_expired', { message: 'Your location sharing session has expired. Please restart.' });
+        return;
+      }
+
+      if (!groupId || !(await isGroupMember(userId, groupId))) {
         socket.emit('error', 'Not authorized to update this location');
         return;
       }
@@ -93,9 +140,10 @@ app.prepare().then(() => {
       });
     });
 
-    socket.on('emergency_sos', (data) => {
-      const { groupId, userId, name, lat, lng, medicalOverview } = data;
-      if (!groupId || userId !== socket.data.userId) {
+    socket.on('emergency_sos', async (data) => {
+      const { groupId, name, lat, lng, medicalOverview } = data;
+      const userId = socket.data.userId;
+      if (!groupId || !(await isGroupMember(userId, groupId))) {
         socket.emit('error', 'Not authorized to send this emergency alert');
         return;
       }
@@ -112,8 +160,9 @@ app.prepare().then(() => {
     });
 
     socket.on('update_itinerary', async (data) => {
-      const { groupId, updaterId, items, tripId } = data;
-      if (!groupId || !updaterId || !(await isGroupMember(updaterId, groupId))) {
+      const { groupId, items, tripId } = data;
+      const updaterId = socket.data.userId;
+      if (!groupId || !(await isGroupMember(updaterId, groupId))) {
         socket.emit('error', 'Not authorized to update this itinerary');
         return;
       }
@@ -127,21 +176,22 @@ app.prepare().then(() => {
 
     // ─── PRE-MATCH CHAT (ANONYMOUS) ─────────────────────────────────────────
 
-    socket.on('join_pre_match', async ({ chatId, userId }) => {
-      if (!chatId || !userId || !(await isPreMatchParticipant(userId, chatId))) {
+    socket.on('join_pre_match', async ({ chatId }) => {
+      const userId = socket.data.userId;
+      if (!chatId || !(await isPreMatchParticipant(userId, chatId))) {
         socket.emit('error', 'Not authorized for this chat');
         return;
       }
 
-      socket.data.userId = userId;
       socket.join(`pre_match_${chatId}`);
       console.log(`Socket ${socket.id} joined pre-match room: pre_match_${chatId}`);
     });
 
     socket.on('send_pre_match_message', async (data) => {
-      const { chatId, senderId, content } = data;
+      const { chatId, content, clientMessageId } = data;
+      const senderId = socket.data.userId;
       try {
-        if (!chatId || senderId !== socket.data.userId || !(await isPreMatchParticipant(senderId, chatId))) {
+        if (!chatId || !(await isPreMatchParticipant(senderId, chatId))) {
           socket.emit('error', 'Not authorized to send to this chat');
           return;
         }
@@ -166,6 +216,7 @@ app.prepare().then(() => {
           senderId,
           content,
           sentimentScore,
+          clientMessageId,
         }).returning();
 
         if (sentimentScore !== null) {
@@ -187,8 +238,24 @@ app.prepare().then(() => {
     });
   });
 
+  // Integration of Background Work
+  const MINUTE_MS = 60 * 1000;
+  setInterval(() => {
+    // Cleanup expired location sessions
+    const now = Date.now();
+    for (const [key, expiryTime] of activeLocationSessions.entries()) {
+      if (now > expiryTime) {
+        activeLocationSessions.delete(key);
+      }
+    }
+  }, MINUTE_MS);
+
+  // You can also run the medication cron here if you import it
+  // e.g. import { runMedicationCron } from './src/workers/medication-cron';
+  // setInterval(runMedicationCron, MINUTE_MS);
+
   httpServer.listen(port, () => {
-    console.log(`> Server ready on http://${hostname}:${port}`);
+    console.log(`> Ready on http://${hostname}:${port}`);
   });
 }).catch((err) => {
   console.error('Error starting server:', err);

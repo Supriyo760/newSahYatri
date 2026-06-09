@@ -113,6 +113,9 @@ export default function CollaborativeItineraryBuilder({ groupId, tripId, initial
             <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
             {isConnected ? 'Syncing Live' : 'Offline'}
           </span>
+          <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+            Weather & Traffic: Simulated Data
+          </span>
           <button 
             onClick={saveToDb}
             disabled={isSaving}

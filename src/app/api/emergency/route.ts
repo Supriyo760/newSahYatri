@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, groupMembers } from '@/db/schema';
@@ -40,7 +41,7 @@ const FIRST_AID_PROTOCOLS: Record<string, string[]> = {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const { lat, lng, groupId } = await req.json();
@@ -98,6 +99,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error('Emergency routing failed:', err);
-    return NextResponse.json({ error: 'Emergency routing failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Emergency routing failed', 500);
   }
 }

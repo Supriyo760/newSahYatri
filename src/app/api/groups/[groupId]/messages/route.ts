@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { messages } from '@/db/schema';
@@ -10,12 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ groupId: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const { groupId } = await params;
     if (!(await isGroupMember(session.user.id, groupId))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return errorResponse('FORBIDDEN', 'Forbidden', 403);
     }
 
     const groupMessages = await db.select()
@@ -24,9 +25,9 @@ export async function GET(
       .orderBy(asc(messages.createdAt))
       .limit(100); // paginate in production, cap at 100 for dev
 
-    return NextResponse.json({ data: groupMessages });
+    return successResponse(groupMessages, 200);
   } catch (err) {
     console.error('Failed to fetch messages:', err);
-    return NextResponse.json({ error: 'Failed to retrieve messages' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to retrieve messages', 500);
   }
 }

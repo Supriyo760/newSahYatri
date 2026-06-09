@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { trips, itineraryDays, itineraryItems, groupMembers } from '@/db/schema';
@@ -6,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const { searchParams } = new URL(req.url);
@@ -23,16 +24,20 @@ export async function GET(req: NextRequest) {
         ).limit(1);
 
       if (!membership) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return errorResponse('FORBIDDEN', 'Forbidden', 403);
       }
 
-      // 2. Fetch trips for this group
-      const groupTrips = await db.select().from(trips).where(eq(trips.groupId, groupId));
+      // 2. Fetch trips for this group, picking the most recent active version
+      const groupTrips = await db.select()
+        .from(trips)
+        .where(and(eq(trips.groupId, groupId), eq(trips.status, 'active')))
+        .orderBy(db.sql`${trips.itineraryVersion} DESC`);
+        
       if (groupTrips.length === 0) {
-        return NextResponse.json({ data: null });
+        return successResponse(null, 200);
       }
 
-      // Load full itinerary for the first trip
+      // Load full itinerary for the latest trip
       const trip = groupTrips[0];
       const days = await db.select().from(itineraryDays)
         .where(eq(itineraryDays.tripId, trip.id))
@@ -72,10 +77,10 @@ export async function GET(req: NextRequest) {
         .innerJoin(trips, eq(groupMembers.groupId, trips.groupId))
         .where(eq(groupMembers.userId, session.user.id));
 
-      return NextResponse.json({ data: userTrips });
+      return successResponse(userTrips, 200);
     }
   } catch (err) {
     console.error('Failed to get trips:', err);
-    return NextResponse.json({ error: 'Failed to retrieve trips' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to retrieve trips', 500);
   }
 }

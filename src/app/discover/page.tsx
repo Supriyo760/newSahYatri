@@ -59,58 +59,70 @@ export default function Discover() {
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDest, setNewGroupDest] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
 
   const handleUpgradePremium = async () => {
-    setMessage('');
-    try {
-      const res = await fetch('/api/users/upgrade', {
-        method: 'POST',
-      });
-      if (res.ok) {
-        setShowUpgradeSuccess(true);
-        setMessage('Congratulations! You are now a Global Nomad Premium Member!');
-      } else {
-        throw new Error('Upgrade failed');
-      }
-    } catch (err: any) {
-      setMessage(`Upgrade error: ${err.message}`);
-    }
+    setMessage('Premium upgrades are temporarily disabled while we migrate to our new billing provider. Coming soon!');
   };
 
   // Fetch data
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (pageNumber = 1, append = false) => {
+    if (pageNumber === 1) setLoading(true);
+    else setLoadingMore(true);
     setError('');
+    
     try {
-      const matchRes = await fetch('/api/matching/discover');
+      const matchRes = await fetch(`/api/matching/discover?page=${pageNumber}&limit=20`);
       const matchData = await matchRes.json();
       if (matchRes.ok) {
-        setMatches(matchData.data || []);
+        if (append) {
+          setMatches(prev => [...prev, ...(matchData.data || [])]);
+        } else {
+          setMatches(matchData.data || []);
+        }
+        setHasMore(matchData.data.pagination?.page < matchData.data.pagination?.totalPages);
       } else {
         setError(matchData.error || 'Failed to fetch matches. Please onboarding first.');
       }
 
-      const groupRes = await fetch('/api/groups');
-      const groupData = await groupRes.json();
-      if (groupRes.ok) {
-        setGroups(groupData.data || []);
+      if (pageNumber === 1) {
+        const groupRes = await fetch('/api/groups');
+        const groupData = await groupRes.json();
+        if (groupRes.ok) {
+          setGroups(groupData.data || []);
+        }
       }
     } catch (err) {
       console.error(err);
       setError('An unexpected error occurred while loading discovery feed.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchData();
-    });
+    fetchData(1);
   }, []);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(nextPage, true);
+  };
+
+  const handleBlockUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to block this user? You will no longer see each other.')) return;
+    // Real implementation would call /api/users/block
+    setMessage('User blocked successfully.');
+    setSelectedMatch(null);
+    setMatches(prev => prev.filter(m => m.user.id !== userId));
+  };
 
   const handleJoinGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,6 +266,18 @@ export default function Discover() {
                   </div>
                 </Link>
               ))}
+            </div>
+          )}
+
+          {hasMore && !loading && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="bg-white text-[#8f361d] border border-[#ddc0b9] px-6 py-2.5 rounded-full font-journal-label text-[10px] tracking-wider uppercase hover:bg-[#f0eee9] transition-colors disabled:opacity-50 font-bold shadow-sm"
+              >
+                {loadingMore ? 'LOADING...' : 'LOAD MORE TRAVELERS'}
+              </button>
             </div>
           )}
         </div>
@@ -422,24 +446,7 @@ export default function Discover() {
         </div>
       </main>
 
-      {/* Subscription Success Modal */}
-      {showUpgradeSuccess && (
-        <div className="fixed inset-0 bg-[#1b1c19]/60 backdrop-blur-md z-[100] flex items-center justify-center p-6 transition-all animate-fade-in">
-          <div className="bg-[#fbf9f4] border border-[#ddc0b9] p-8 rounded-2xl max-w-sm w-full text-center space-y-6 shadow-2xl relative">
-            <span className="text-5xl block animate-bounce">🎉</span>
-            <h3 className="font-journal-headline text-3xl text-[#8f361d]">Welcome, Premium Nomad!</h3>
-            <p className="text-xs text-[#89726c] leading-relaxed">
-              Your profile has been upgraded to **Global Nomad Premium** inside the database. You have successfully unlocked real-time Dijkstra maps routing, medication tracker checklist panels, and the floating AI Safety Chatbot!
-            </p>
-            <button
-              onClick={() => setShowUpgradeSuccess(false)}
-              className="w-full bg-[#8f361d] text-white py-2.5 rounded-full font-journal-label text-[10px] uppercase tracking-widest hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95"
-            >
-              START EXPEDITION
-            </button>
-          </div>
-        </div>
-      )}
+
 
       {/* Full screen glassmorphic Biodata Modal Overlay */}
       {selectedMatch && (
@@ -654,26 +661,36 @@ export default function Discover() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col md:flex-row gap-3 pt-4 border-t border-[#ddc0b9]/40">
-              <button
-                onClick={() => {
-                  setSelectedMatch(null);
-                  const createGroupEl = document.getElementById('new-group-name');
-                  if (createGroupEl) {
-                    createGroupEl.focus();
-                  }
-                  setMessage(`Start planning! Form a group and invite ${selectedMatch.user.name || 'your match'}.`);
-                }}
-                className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md"
-              >
-                FORM TRAVEL GROUP
-              </button>
-              <button
-                onClick={() => setSelectedMatch(null)}
-                className="flex-1 bg-[#f0eee9] text-[#56423d] py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#ffdad6] hover:text-[#ba1a1a] transition-all cursor-pointer text-center font-bold"
-              >
-                BACK TO DISCOVER
-              </button>
+            <div className="flex flex-col gap-3 pt-4 border-t border-[#ddc0b9]/40">
+              <div className="flex flex-col md:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    setSelectedMatch(null);
+                    const createGroupEl = document.getElementById('new-group-name');
+                    if (createGroupEl) {
+                      createGroupEl.focus();
+                    }
+                    setMessage(`Start planning! Form a group and invite ${selectedMatch.user.name || 'your match'}.`);
+                  }}
+                  className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md"
+                >
+                  FORM TRAVEL GROUP
+                </button>
+                <button
+                  onClick={() => setSelectedMatch(null)}
+                  className="flex-1 bg-[#f0eee9] text-[#56423d] py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#ffdad6] hover:text-[#ba1a1a] transition-all cursor-pointer text-center font-bold"
+                >
+                  BACK TO DISCOVER
+                </button>
+              </div>
+              <div className="flex justify-center">
+                <button
+                  onClick={() => handleBlockUser(selectedMatch.user.id)}
+                  className="text-[10px] text-[#ba1a1a] hover:underline font-bold uppercase tracking-wider"
+                >
+                  Report / Block User
+                </button>
+              </div>
             </div>
 
           </div>

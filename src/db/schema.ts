@@ -1,8 +1,9 @@
 // src/db/schema.ts
 import {
   pgTable, pgEnum, text, integer, real, boolean,
-  timestamp, jsonb, uuid, varchar, index, uniqueIndex
+  timestamp, jsonb, uuid, varchar, index, uniqueIndex, check
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
 
@@ -150,10 +151,12 @@ export const travelGroups = pgTable('travel_groups', {
   createdBy: uuid('created_by').notNull().references(() => users.id),
   compatibilityScore: real('compatibility_score'),
   inviteCode: varchar('invite_code', { length: 12 }),
+  inviteExpiresAt: timestamp('invite_expires_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (t) => ({
   inviteCodeIdx: uniqueIndex('group_invite_code_idx').on(t.inviteCode),
+  maxMembersCheck: check('max_members_check', sql`"max_members" > 0 AND "max_members" <= 50`),
 }));
 
 // ─── GROUP MEMBERS ────────────────────────────────────────────────────────────
@@ -181,6 +184,7 @@ export const compatibilityScores = pgTable('compatibility_scores', {
   budgetScore: real('budget_score'),
   foodScore: real('food_score'),
   travelStyleScore: real('travel_style_score'),
+  algorithmVersion: integer('algorithm_version').default(1).notNull(),
   computedAt: timestamp('computed_at').defaultNow(),
 }, (t) => ({
   pairIdx: uniqueIndex('compat_pair_idx').on(t.userAId, t.userBId),
@@ -203,6 +207,7 @@ export const trips = pgTable('trips', {
   currency: varchar('currency', { length: 3 }).default('USD'),
   hiddenGemMode: boolean('hidden_gem_mode').default(false), // true if durationDays >= 5
   generationPromptUsed: text('generation_prompt_used'), // store for debugging
+  itineraryVersion: integer('itinerary_version').default(1).notNull(), // for optimistic concurrency and version tracking
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -267,12 +272,12 @@ export const expenses = pgTable('expenses', {
   id: uuid('id').primaryKey().defaultRandom(),
   tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
   paidBy: uuid('paid_by').notNull().references(() => users.id),
-  amount: real('amount').notNull(),
+  amountMinorUnits: integer('amount_minor_units').notNull(), // amount in minor units (e.g., cents)
   currency: varchar('currency', { length: 3 }).default('USD'),
   description: varchar('description', { length: 300 }).notNull(),
   category: varchar('category', { length: 50 }), // food/transport/attraction/other
   splitType: expenseSplitEnum('split_type').default('equal'),
-  // For custom splits: { userId: amount }
+  // For custom splits: { userId: amountMinorUnits }
   splits: jsonb('splits'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -284,7 +289,7 @@ export const expenseSplits = pgTable('expense_splits', {
   expenseId: uuid('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
   tripId: uuid('trip_id').notNull().references(() => trips.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id),
-  amountOwed: real('amount_owed').notNull(),
+  amountOwedMinorUnits: integer('amount_owed_minor_units').notNull(),
   hasPaid: boolean('has_paid').default(false),
   createdAt: timestamp('created_at').defaultNow(),
 }, (t) => ({
@@ -362,9 +367,101 @@ export const preMatchChats = pgTable('pre_match_chats', {
 
 export const preMatchMessages = pgTable('pre_match_messages', {
   id: uuid('id').primaryKey().defaultRandom(),
+  clientMessageId: uuid('client_message_id'), // For idempotency
   chatId: uuid('chat_id').notNull().references(() => preMatchChats.id),
   senderId: uuid('sender_id').notNull().references(() => users.id),
   content: text('content').notNull(),
   sentimentScore: real('sentiment_score'),
+  moderationStatus: varchar('moderation_status', { length: 20 }).default('clean'), // clean, flagged, blocked
   createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  clientMsgIdx: uniqueIndex('pre_match_msg_client_id_idx').on(t.clientMessageId),
+}));
+
+export const groupMessages = pgTable('group_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clientMessageId: uuid('client_message_id'), // For idempotency
+  groupId: uuid('group_id').notNull().references(() => travelGroups.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id').notNull().references(() => users.id),
+  content: text('content').notNull(),
+  sentimentScore: real('sentiment_score'),
+  moderationStatus: varchar('moderation_status', { length: 20 }).default('clean'), // clean, flagged, blocked
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  clientMsgIdx: uniqueIndex('group_msg_client_id_idx').on(t.clientMessageId),
+  groupIdx: index('group_messages_group_idx').on(t.groupId),
+}));
+
+// ─── USER SAFETY ─────────────────────────────────────────────────────────────
+
+export const userBlocks = pgTable('user_blocks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  blockerId: uuid('blocker_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  blockedId: uuid('blocked_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  blockPairIdx: uniqueIndex('user_blocks_pair_idx').on(t.blockerId, t.blockedId),
+}));
+
+export const userReports = pgTable('user_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reporterId: uuid('reporter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reportedId: uuid('reported_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reasonCategory: varchar('reason_category', { length: 50 }).notNull(),
+  description: text('description'),
+  status: varchar('status', { length: 20 }).default('pending'), // pending, resolved, dismissed
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ─── BILLING & IDEMPOTENCY ───────────────────────────────────────────────────
+
+export const webhookEvents = pgTable('webhook_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  provider: varchar('provider', { length: 50 }).notNull(), // stripe, razorpay
+  eventId: varchar('event_id', { length: 200 }).notNull(),
+  eventType: varchar('event_type', { length: 100 }),
+  processedAt: timestamp('processed_at').defaultNow(),
+}, (t) => ({
+  eventIdIdx: uniqueIndex('webhook_event_id_idx').on(t.eventId),
+}));
+
+// ─── PRIVACY & CONSENT ────────────────────────────────────────────────────────
+
+export const consentAuditLogs = pgTable('consent_audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar('action', { length: 100 }).notNull(), // e.g. "granted_medical_sharing", "revoked_medical_sharing"
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  timestamp: timestamp('timestamp').defaultNow(),
+});
+
+// ─── PUSH NOTIFICATIONS & MEDICATIONS ──────────────────────────────────────────
+
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const medicationSchedules = pgTable('medication_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  encryptedDetails: text('encrypted_details').notNull(), // name, dosage, instructions encrypted
+  timezone: varchar('timezone', { length: 100 }).notNull(),
+  recurrence: jsonb('recurrence'), // e.g. ["08:00", "20:00"]
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const medicationEvents = pgTable('medication_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scheduleId: uuid('schedule_id').notNull().references(() => medicationSchedules.id, { onDelete: 'cascade' }),
+  dueTime: timestamp('due_time').notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, taken, skipped, snoozed
+  timestamp: timestamp('timestamp').defaultNow(),
 });

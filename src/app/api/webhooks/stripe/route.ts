@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import Stripe from 'stripe';
 import { getStripe } from '@/services/payments';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, webhookEvents } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get('stripe-signature');
 
   if (!signature) {
-    return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 });
+    return errorResponse('BAD_REQUEST', 'Missing stripe-signature', 400);
   }
 
   let event: Stripe.Event;
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret || webhookSecret.toLowerCase().includes('placeholder')) {
-      return NextResponse.json({ error: 'Stripe webhook secret is not configured' }, { status: 500 });
+      return errorResponse('INTERNAL_ERROR', 'Stripe webhook secret is not configured', 500);
     }
 
     event = getStripe().webhooks.constructEvent(
@@ -30,6 +31,22 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : 'Webhook signature verification failed';
     console.error('Webhook signature verification failed:', message);
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  // Idempotency lock
+  try {
+    await db.insert(webhookEvents).values({
+      provider: 'stripe',
+      eventId: event.id,
+      eventType: event.type,
+    });
+  } catch (err: any) {
+    if (err.code === '23505' || err.message?.includes('unique constraint')) {
+      console.log(`[STRIPE WEBHOOK] Event ${event.id} already processed. Skipping.`);
+      return NextResponse.json({ received: true });
+    }
+    console.error('Failed to save webhook event ID:', err);
+    return errorResponse('INTERNAL_ERROR', 'Failed to acquire idempotency lock', 500);
   }
 
   try {
@@ -60,6 +77,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error('Webhook processing error:', err);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Webhook handler failed', 500);
   }
 }

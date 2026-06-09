@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { preMatchChats, preMatchMessages } from '@/db/schema';
@@ -10,7 +11,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
@@ -23,7 +24,7 @@ export async function GET(
       .limit(1);
 
     if (!chat || (chat.initiatorId !== session.user.id && chat.recipientId !== session.user.id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return errorResponse('FORBIDDEN', 'Forbidden', 403);
     }
 
     const messages = await db
@@ -33,9 +34,9 @@ export async function GET(
       .orderBy(asc(preMatchMessages.createdAt))
       .limit(100);
 
-    return NextResponse.json({ data: messages });
+    return successResponse(messages, 200);
   } catch (err) {
     console.error('Failed to fetch pre-match messages:', err);
-    return NextResponse.json({ error: 'Failed to fetch pre-match messages' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to fetch pre-match messages', 500);
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { travelGroups, groupMembers } from '@/db/schema';
@@ -14,13 +15,14 @@ const createGroupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const body = await req.json();
     const data = createGroupSchema.parse(body);
 
     const inviteCode = nanoid(6).toUpperCase();
+    const inviteExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     // Create group
     const [group] = await db.insert(travelGroups).values({
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest) {
       maxMembers: data.maxMembers,
       createdBy: session.user.id,
       inviteCode,
+      inviteExpiresAt,
       status: 'forming',
     }).returning();
 
@@ -40,18 +43,18 @@ export async function POST(req: NextRequest) {
       medicalSharingConsent: false,
     });
 
-    return NextResponse.json({ data: group }, { status: 201 });
+    return successResponse(group, 201);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
-    return NextResponse.json({ error: 'Group creation failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Group creation failed', 500);
   }
 }
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     // List groups where current user is a member
@@ -70,8 +73,8 @@ export async function GET() {
       .innerJoin(travelGroups, eq(groupMembers.groupId, travelGroups.id))
       .where(eq(groupMembers.userId, session.user.id));
 
-    return NextResponse.json({ data: userGroups });
+    return successResponse(userGroups, 200);
   } catch {
-    return NextResponse.json({ error: 'Failed to retrieve groups' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to retrieve groups', 500);
   }
 }

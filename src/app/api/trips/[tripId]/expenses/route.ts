@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { expenseSplits, expenses, groupMembers } from '@/db/schema';
@@ -23,12 +24,12 @@ export async function GET(
   { params }: { params: Promise<{ tripId: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const { tripId } = await params;
     const trip = await getTripForMember(session.user.id, tripId);
-    if (!trip) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!trip) return errorResponse('FORBIDDEN', 'Forbidden', 403);
     
     // Fetch expenses
     const tripExpenses = await db.select()
@@ -48,7 +49,7 @@ export async function GET(
     });
   } catch (err) {
     console.error('Failed to fetch expenses:', err);
-    return NextResponse.json({ error: 'Failed to retrieve expenses' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to retrieve expenses', 500);
   }
 }
 
@@ -57,12 +58,12 @@ export async function POST(
   { params }: { params: Promise<{ tripId: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const { tripId } = await params;
     const trip = await getTripForMember(session.user.id, tripId);
-    if (!trip) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!trip) return errorResponse('FORBIDDEN', 'Forbidden', 403);
 
     const body = expenseSchema.parse(await req.json());
     
@@ -73,7 +74,7 @@ export async function POST(
     const memberIds = new Set(members.map((member) => member.userId));
 
     if (body.splits.some((split) => !memberIds.has(split.userId))) {
-      return NextResponse.json({ error: 'Splits must only include trip group members' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Splits must only include trip group members', 400);
     }
 
     // Simplified transaction logic
@@ -105,9 +106,9 @@ export async function POST(
     return NextResponse.json({ status: 'success', expenseId });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     console.error('Failed to create expense:', err);
-    return NextResponse.json({ error: 'Failed to create expense' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to create expense', 500);
   }
 }

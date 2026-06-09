@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { restaurants, personalityProfiles } from '@/db/schema';
@@ -20,7 +21,7 @@ const REGIONAL_SPECIALTIES: Record<string, string[]> = {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   const { searchParams } = new URL(req.url);
   const city = searchParams.get('city')?.toLowerCase() || '';
@@ -68,6 +69,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error('Food discovery failed:', err);
-    return NextResponse.json({ error: 'Food discovery failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Food discovery failed', 500);
   }
 }

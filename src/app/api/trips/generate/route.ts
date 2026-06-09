@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { trips, itineraryDays, itineraryItems, personalityProfiles } from '@/db/schema';
@@ -18,7 +19,7 @@ const generateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const body = await req.json();
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     // Get group info + user profile for personalization
     const group = await getGroupForMember(session.user.id, data.groupId);
-    if (!group) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!group) return errorResponse('FORBIDDEN', 'Forbidden', 403);
 
     const [profile] = await db.select().from(personalityProfiles)
       .where(eq(personalityProfiles.userId, session.user.id)).limit(1);
@@ -51,8 +52,16 @@ export async function POST(req: NextRequest) {
       interests: profile?.interests || [],
     });
 
-    // Delete any existing trips for this group to support regenerating/changing location
-    await db.delete(trips).where(eq(trips.groupId, data.groupId));
+    // Fetch existing trips to determine version
+    const existingTrips = await db.select().from(trips).where(eq(trips.groupId, data.groupId));
+    const nextVersion = existingTrips.length > 0 ? Math.max(...existingTrips.map(t => t.itineraryVersion)) + 1 : 1;
+
+    // Archive previous trips instead of deleting
+    if (existingTrips.length > 0) {
+      await db.update(trips)
+        .set({ status: 'cancelled' })
+        .where(eq(trips.groupId, data.groupId));
+    }
 
     // Save trip to DB
     const [trip] = await db.insert(trips).values({
@@ -64,6 +73,8 @@ export async function POST(req: NextRequest) {
       hiddenGemMode: durationDays >= 5,
       totalBudget: data.budgetTotal,
       perPersonBudget: data.budgetTotal ? data.budgetTotal / (group.maxMembers || 4) : undefined,
+      itineraryVersion: nextVersion,
+      status: 'active',
     }).returning();
 
     // Save days and items (with Google Places enrichment)
@@ -113,6 +124,6 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Trip generation error:', err);
     const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Trip generation failed: ${message}` }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', `Trip generation failed: ${message}`, 500);
   }
 }

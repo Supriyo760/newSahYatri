@@ -39,8 +39,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Skip dev endpoints, socket.io connections, or external non-http routes
-  if (!url.protocol.startsWith('http') || url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) {
+  // Skip socket.io connections or external non-http routes
+  if (!url.protocol.startsWith('http') || url.pathname.startsWith('/socket.io')) {
     return;
   }
 
@@ -65,5 +65,47 @@ self.addEventListener('fetch', (event) => {
           // If no cache match exists, standard browser offline fallback will trigger
         });
       })
+  );
+});
+
+// Listen for Push Notifications (Medication / SOS)
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {
+    data = { title: 'SahYatri Notification', body: event.data ? event.data.text() : '' };
+  }
+
+  const title = data.title || 'SahYatri';
+  const options = {
+    body: data.body || 'You have a new update.',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    data: data.url || '/',
+    vibrate: [100, 50, 100],
+    requireInteraction: true
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Click action on Push Notification
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((windowClients) => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
   );
 });

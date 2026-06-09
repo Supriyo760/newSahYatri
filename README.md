@@ -18,7 +18,7 @@ SahYatri is a next-generation travel platform built to revolutionize how people 
 ##  Architecture
 
 SahYatri uses a hybrid architecture:
-1. **Frontend / Core Backend**: [Next.js 15 (App Router)](https://nextjs.org/) with React 19. Handles UI, auth, database ORM (Drizzle), and core business logic.
+1. **Frontend / Core Backend**: [Next.js 16.2.6 (App Router)](https://nextjs.org/) with React 19. Handles UI, auth, database ORM (Drizzle), and core business logic.
 2. **AI Microservice**: [Python FastAPI](https://fastapi.tiangolo.com/). Handles heavy ML workloads (Scikit-Learn, XGBoost, Transformers).
 3. **Database**: [PostgreSQL](https://www.postgresql.org/).
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, personalityProfiles, users } from '@/db/schema';
@@ -6,9 +7,13 @@ import { eq, ne, and } from 'drizzle-orm';
 import { getCompatibility } from '@/lib/matching/compatibility';
 import { mlEndpoint } from '@/services/ml';
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
+
+  const { searchParams } = new URL(req.url);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '20', 10);
 
   try {
     // 1. Get requester profile
@@ -16,11 +21,20 @@ export async function GET() {
       .where(eq(personalityProfiles.userId, session.user.id)).limit(1);
 
     if (!myProfile) {
-      return NextResponse.json({ error: 'Profile not found. Please complete onboarding.' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Profile not found. Please complete onboarding.', 400);
     }
 
-    // 2. Get all other profiles of onboarded users
-    const otherProfiles = await db
+    // 2. Get blocked users (both ways)
+    const blocks = await db.query.userBlocks.findMany({
+      where: (userBlocks, { or, eq }) => or(
+        eq(userBlocks.blockerId, session.user.id),
+        eq(userBlocks.blockedId, session.user.id)
+      )
+    });
+    const blockedUserIds = new Set(blocks.flatMap(b => [b.blockerId, b.blockedId]));
+
+    // 3. Get all other profiles of onboarded users
+    const otherProfilesQuery = await db
       .select({
         id: personalityProfiles.id,
         userId: personalityProfiles.userId,
@@ -51,7 +65,9 @@ export async function GET() {
         )
       );
 
-    // 3. Compute compatibility for all pairs and query AI microservice
+    const otherProfiles = otherProfilesQuery.filter(p => !blockedUserIds.has(p.userId));
+
+    // 4. Compute compatibility for all pairs and query AI microservice
     const matches = [];
     for (const other of otherProfiles) {
       const matchDetails = await getCompatibility(myProfile, other);
@@ -128,9 +144,21 @@ export async function GET() {
     // Sort descending by overallScore
     matches.sort((a, b) => b.compatibility.overallScore - a.compatibility.overallScore);
 
-    return NextResponse.json({ data: matches }, { status: 200 });
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const paginatedMatches = matches.slice(startIndex, startIndex + limit);
+
+    return successResponse({
+      data: paginatedMatches,
+      pagination: {
+        page,
+        limit,
+        total: matches.length,
+        totalPages: Math.ceil(matches.length / limit)
+      }
+    }, 200);
   } catch (err) {
     console.error('Discover error:', err);
-    return NextResponse.json({ error: 'Failed to discover matches' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to discover matches', 500);
   }
 }

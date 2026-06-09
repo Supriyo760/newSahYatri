@@ -1,10 +1,11 @@
 /**
  * Cost-splitting and debt settlement algorithms
+ * Now explicitly operates on integer minor units (e.g. cents) to prevent float drift
  */
 
 export interface ExpenseRecord {
   id: string;
-  amount: string; // From DB numeric
+  amountMinorUnits: number; // Integer minor units from DB
   paidById: string;
   splitType: string;
 }
@@ -12,18 +13,18 @@ export interface ExpenseRecord {
 export interface SplitRecord {
   expenseId: string;
   userId: string;
-  amountOwed: string; // From DB numeric
+  amountOwedMinorUnits: number; // Integer minor units from DB
 }
 
 export interface Balance {
   userId: string;
-  netBalance: number; // Positive = gets money back, Negative = owes money
+  netBalanceMinorUnits: number; // Positive = gets money back, Negative = owes money
 }
 
 export interface Settlement {
   fromUser: string;
   toUser: string;
-  amount: number;
+  amountMinorUnits: number;
 }
 
 export function calculateBalances(members: string[], expenses: ExpenseRecord[], splits: SplitRecord[]): Record<string, Balance> {
@@ -31,20 +32,20 @@ export function calculateBalances(members: string[], expenses: ExpenseRecord[], 
   
   // Initialize
   members.forEach(userId => {
-    balances[userId] = { userId, netBalance: 0 };
+    balances[userId] = { userId, netBalanceMinorUnits: 0 };
   });
   
   // Add what they paid
   expenses.forEach(exp => {
     if (balances[exp.paidById]) {
-      balances[exp.paidById].netBalance += parseFloat(exp.amount);
+      balances[exp.paidById].netBalanceMinorUnits += exp.amountMinorUnits;
     }
   });
   
   // Subtract what they owe
   splits.forEach(split => {
     if (balances[split.userId]) {
-      balances[split.userId].netBalance -= parseFloat(split.amountOwed);
+      balances[split.userId].netBalanceMinorUnits -= split.amountOwedMinorUnits;
     }
   });
   
@@ -57,13 +58,13 @@ export function calculateOptimalSettlements(balances: Record<string, Balance>): 
   const creditors = []; // People who get money (positive balance)
   
   for (const b of Object.values(balances)) {
-    if (b.netBalance < -0.01) debtors.push({ ...b, netBalance: Math.abs(b.netBalance) });
-    else if (b.netBalance > 0.01) creditors.push({ ...b });
+    if (b.netBalanceMinorUnits < 0) debtors.push({ ...b, netBalanceMinorUnits: Math.abs(b.netBalanceMinorUnits) });
+    else if (b.netBalanceMinorUnits > 0) creditors.push({ ...b });
   }
   
   // Sort descending by amount
-  debtors.sort((a, b) => b.netBalance - a.netBalance);
-  creditors.sort((a, b) => b.netBalance - a.netBalance);
+  debtors.sort((a, b) => b.netBalanceMinorUnits - a.netBalanceMinorUnits);
+  creditors.sort((a, b) => b.netBalanceMinorUnits - a.netBalanceMinorUnits);
   
   const settlements: Settlement[] = [];
   
@@ -74,24 +75,21 @@ export function calculateOptimalSettlements(balances: Record<string, Balance>): 
     const debtor = debtors[i];
     const creditor = creditors[j];
     
-    const amount = Math.min(debtor.netBalance, creditor.netBalance);
+    const amountMinorUnits = Math.min(debtor.netBalanceMinorUnits, creditor.netBalanceMinorUnits);
     
-    // Round to 2 decimal places to avoid floating point weirdness
-    const roundedAmount = Math.round(amount * 100) / 100;
-    
-    if (roundedAmount > 0) {
+    if (amountMinorUnits > 0) {
       settlements.push({
         fromUser: debtor.userId,
         toUser: creditor.userId,
-        amount: roundedAmount
+        amountMinorUnits
       });
     }
     
-    debtor.netBalance -= amount;
-    creditor.netBalance -= amount;
+    debtor.netBalanceMinorUnits -= amountMinorUnits;
+    creditor.netBalanceMinorUnits -= amountMinorUnits;
     
-    if (debtor.netBalance < 0.01) i++;
-    if (creditor.netBalance < 0.01) j++;
+    if (debtor.netBalanceMinorUnits === 0) i++;
+    if (creditor.netBalanceMinorUnits === 0) j++;
   }
   
   return settlements;

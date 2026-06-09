@@ -1,0 +1,1 @@
+ALTER TABLE "travel_groups" ADD CONSTRAINT "max_members_check" CHECK ("max_members" > 0 AND "max_members" <= 50);

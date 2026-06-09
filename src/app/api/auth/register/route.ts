@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       .where(eq(users.email, data.email)).limit(1);
 
     if (existing) {
-      return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
+      return errorResponse('ERROR', 'Email already registered', 409);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);
@@ -36,11 +37,11 @@ export async function POST(req: NextRequest) {
       nationality: data.nationality,
     }).returning({ id: users.id, email: users.email, name: users.name });
 
-    return NextResponse.json({ data: user }, { status: 201 });
+    return successResponse(user, 201);
   } catch (err) {
     console.error('Registration error:', err);
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Registration failed' }, { status: 500 });
   }

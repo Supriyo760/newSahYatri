@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, users } from '@/db/schema';
@@ -37,7 +38,7 @@ const medicalSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const body = await req.json();
@@ -80,22 +81,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     const message = err instanceof Error ? err.message : 'Unknown server error';
     console.error('Failed to save medical profile:', err);
-    return NextResponse.json({ error: `Failed to save medical profile: ${message}` }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', `Failed to save medical profile: ${message}`, 500);
   }
 }
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   const [profile] = await db.select().from(medicalProfiles)
     .where(eq(medicalProfiles.userId, session.user.id)).limit(1);
 
-  if (!profile) return NextResponse.json({ data: null });
+  if (!profile) return successResponse(null, 200);
 
   // Decrypt only for the profile owner
   return NextResponse.json({

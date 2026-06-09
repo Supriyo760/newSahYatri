@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { personalityProfiles, users } from '@/db/schema';
@@ -31,7 +32,7 @@ const profileSchema = z.object({
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
@@ -53,16 +54,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
-    return NextResponse.json({ error: 'Profile update failed' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Profile update failed', 500);
   }
 }
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
@@ -81,14 +82,12 @@ export async function GET() {
       .where(eq(users.id, session.user.id))
       .limit(1);
 
-    return NextResponse.json({
-      data: {
-        ...(profile || {}),
-        avatarUrl: user?.avatarUrl || null,
-        name: user?.name || null
-      }
-    });
+    return successResponse({
+      ...(profile || {}),
+      avatarUrl: user?.avatarUrl || null,
+      name: user?.name || null
+    }, 200);
   } catch {
-    return NextResponse.json({ error: 'Failed to retrieve profile' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to retrieve profile', 500);
   }
 }

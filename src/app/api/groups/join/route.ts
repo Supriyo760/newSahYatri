@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { travelGroups, groupMembers, personalityProfiles } from '@/db/schema';
@@ -12,7 +13,7 @@ const joinSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
     const body = await req.json();
@@ -23,11 +24,15 @@ export async function POST(req: NextRequest) {
       .where(eq(travelGroups.inviteCode, inviteCode.toUpperCase())).limit(1);
 
     if (!group) {
-      return NextResponse.json({ error: 'Group not found' }, { status: 404 });
+      return errorResponse('NOT_FOUND', 'Group not found', 404);
     }
 
     if (group.status !== 'forming') {
-      return NextResponse.json({ error: 'Group is no longer open for joining' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Group is no longer open for joining', 400);
+    }
+
+    if (group.inviteExpiresAt && new Date() > group.inviteExpiresAt) {
+      return errorResponse('BAD_REQUEST', 'Invite code has expired', 400);
     }
 
     // 2. Check if user is already a member
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
       ).limit(1);
 
     if (existingMember) {
-      return NextResponse.json({ data: group, message: 'Already a member' }, { status: 200 });
+      return successResponse({ group, message: 'Already a member' }, 200);
     }
 
     // 3. Check if group is full
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
       .where(eq(groupMembers.groupId, group.id));
 
     if (currentMembers.length >= (group.maxMembers || 4)) {
-      return NextResponse.json({ error: 'Group is full' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'Group is full', 400);
     }
 
     // 4. Add user to group
@@ -85,12 +90,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ data: group, message: 'Successfully joined group' }, { status: 200 });
+    return successResponse({ group, message: 'Successfully joined group' }, 200);
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     console.error('Join group error:', err);
-    return NextResponse.json({ error: 'Failed to join group' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to join group', 500);
   }
 }

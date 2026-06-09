@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { itineraryDays, itineraryItems } from '@/db/schema';
@@ -23,19 +24,19 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
   }
 
   try {
     const { tripId } = await params;
     const trip = await getTripForMember(session.user.id, tripId);
     if (!trip) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return errorResponse('FORBIDDEN', 'Forbidden', 403);
     }
 
     const { items } = saveSchema.parse(await req.json());
     if (items.length === 0) {
-      return NextResponse.json({ error: 'At least one itinerary item is required' }, { status: 400 });
+      return errorResponse('BAD_REQUEST', 'At least one itinerary item is required', 400);
     }
 
     await db.transaction(async (tx) => {
@@ -75,9 +76,9 @@ export async function POST(
     return NextResponse.json({ data: { success: true } });
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues }, { status: 400 });
+      return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
     console.error('Failed to save collaborative itinerary:', err);
-    return NextResponse.json({ error: 'Failed to save collaborative itinerary' }, { status: 500 });
+    return errorResponse('INTERNAL_ERROR', 'Failed to save collaborative itinerary', 500);
   }
 }
