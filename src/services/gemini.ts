@@ -934,10 +934,7 @@ Rules:
       generationConfig: { responseMimeType: "application/json" }
     });
 
-    const result = await model.generateContent([
-      { text: 'You are SahYatri, an AI travel concierge specializing in optimized, personalized itineraries. Respond ONLY in valid JSON.' },
-      { text: prompt }
-    ]);
+    const result = await model.generateContent(`You are SahYatri, an AI travel concierge specializing in optimized, personalized itineraries. Respond ONLY in valid JSON.\n\n${prompt}`);
     
     const content = result.response.text();
     if (!content) throw new Error('AI failed to generate itinerary');
