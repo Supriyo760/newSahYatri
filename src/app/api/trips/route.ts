@@ -3,7 +3,7 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { trips, itineraryDays, itineraryItems, groupMembers } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       const groupTrips = await db.select()
         .from(trips)
         .where(and(eq(trips.groupId, groupId), eq(trips.status, 'active')))
-        .orderBy(db.sql`${trips.itineraryVersion} DESC`);
+        .orderBy(desc(trips.itineraryVersion));
         
       if (groupTrips.length === 0) {
         return successResponse(null, 200);
