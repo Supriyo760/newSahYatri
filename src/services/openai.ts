@@ -955,8 +955,12 @@ Rules:
     if (!content) throw new Error('AI failed to generate itinerary');
 
     return JSON.parse(content) as GeneratedItinerary;
-  } catch (err) {
+  } catch (err: any) {
+    if (!isPlaceholder && apiKey) {
+      throw new Error(`OpenAI API Error: ${err.message || 'Invalid API Key or connection failed'}. Please check your OPENAI_API_KEY.`);
+    }
     console.warn('OpenAI itinerary generation failed, falling back to local generator:', err);
     return await generateFallbackItinerary(params);
   }
 }
+
