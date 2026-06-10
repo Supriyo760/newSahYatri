@@ -929,33 +929,36 @@ Rules:
     `.trim();
 
     const genAI = new GoogleGenerativeAI(apiKey!);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.5-flash",
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const modelsToTry = [
+      "gemini-3.5-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.5-pro"
+    ];
 
     let content = null;
     let lastErr = null;
 
-    // Retry up to 5 times for 503 High Demand errors
-    for (let attempt = 1; attempt <= 5; attempt++) {
+    for (const modelName of modelsToTry) {
       try {
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: { responseMimeType: "application/json" }
+        });
+
         const result = await model.generateContent(`You are SahYatri, an AI travel concierge specializing in optimized, personalized itineraries. Respond ONLY in valid JSON.\n\n${prompt}`);
         content = result.response.text();
         
         if (content) {
-          console.log(`Successfully generated itinerary on attempt ${attempt}`);
+          console.log(`Successfully generated itinerary using ${modelName}`);
           break; // Exit the loop if successful
         }
       } catch (err: any) {
         lastErr = err;
-        console.warn(`Attempt ${attempt} failed:`, err.message);
+        console.warn(`Model ${modelName} failed:`, err.message);
         
-        // If it's a 503 overloaded error, wait 2 seconds before retrying
-        if (err.message && err.message.includes('503')) {
-          await new Promise(res => setTimeout(res, 2000));
-        } else {
-          // If it's not a 503, no point in retrying (e.g. 401, 404)
+        // If it's a 401 Unauthorized or API Key Invalid, immediately stop
+        if (err.message && (err.message.includes('401') || err.message.includes('API key not valid'))) {
           break;
         }
       }
