@@ -490,7 +490,7 @@ export default function Home() {
                     <img
                       className="w-12 h-12 rounded-full object-cover border border-[#8f361d] bg-white"
                       alt="Rahul Sankrityayan"
-                      src="/rahul-sketch.jpg"
+                      src="https://upload.wikimedia.org/wikipedia/commons/6/66/Rahul_Sankrityayan_1993_stamp_of_India.jpg"
                     />
                     <div>
                       <p className="font-journal-body font-bold text-[#1b1c19]">Rahul Sankrityayan <span className="text-[#8f361d] font-normal italic">(Ghumakkad Raj)</span></p>
