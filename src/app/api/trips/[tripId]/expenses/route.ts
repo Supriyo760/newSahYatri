@@ -84,7 +84,7 @@ export async function POST(
       id: expenseId,
       tripId,
       description: body.description,
-      amount: body.amount,
+      amountMinorUnits: Math.round(body.amount * 100),
       currency: body.currency,
       paidBy: session.user.id,
       splitType: body.splitType,
@@ -97,7 +97,7 @@ export async function POST(
         expenseId,
         tripId,
         userId: split.userId,
-        amountOwed: split.amount,
+        amountOwedMinorUnits: Math.round(split.amount * 100),
       }));
       
       await db.insert(expenseSplits).values(splitValues);
