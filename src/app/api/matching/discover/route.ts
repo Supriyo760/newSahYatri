@@ -3,7 +3,7 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, personalityProfiles, users } from '@/db/schema';
-import { eq, ne, and } from 'drizzle-orm';
+import { eq, ne, and, notInArray } from 'drizzle-orm';
 import { getCompatibility } from '@/lib/matching/compatibility';
 import { mlEndpoint } from '@/services/ml';
 
