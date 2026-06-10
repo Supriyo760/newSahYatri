@@ -930,7 +930,7 @@ Rules:
 
     const genAI = new GoogleGenerativeAI(apiKey!);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.5-flash",
+      model: "gemini-pro",
       generationConfig: { responseMimeType: "application/json" }
     });
 
