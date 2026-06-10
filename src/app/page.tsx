@@ -442,13 +442,13 @@ export default function Home() {
                 <TiltCard className="relative overflow-hidden rounded-2xl group h-[450px]">
                   <img
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Taj Mahal secret view"
-                    src="https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"
+                    alt="Banaras Ghats"
+                    src="https://images.unsplash.com/photo-1561359313-0639aad49ca6?auto=format&fit=crop&w=1200&q=80"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1b1c19]/80 via-transparent to-transparent" />
                   <div className="absolute bottom-8 left-8 text-white">
-                    <span className="font-journal-label text-xs opacity-80 text-[#fdb55c]">Heritage</span>
-                    <h4 className="font-journal-headline text-2xl mt-1">The Reflected Palace</h4>
+                    <span className="font-journal-label text-xs opacity-80 text-[#fdb55c]">Spiritual</span>
+                    <h4 className="font-journal-headline text-2xl mt-1">The Ghats of Banaras</h4>
                   </div>
                 </TiltCard>
               </ScrollReveal>
