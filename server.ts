@@ -19,10 +19,18 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-const httpServer = createServer((req, res) => {
+let isNextReady = false;
+
+const httpServer = createServer(async (req, res) => {
+  if (!isNextReady) {
+    res.statusCode = 503;
+    res.end('Server is booting up, please wait...');
+    return;
+  }
+  
   try {
     const parsedUrl = parse(req.url!, true);
-    handle(req, res, parsedUrl);
+    await handle(req, res, parsedUrl);
   } catch (err) {
     console.error('Error in request handler', err);
     res.statusCode = 500;
@@ -256,6 +264,7 @@ httpServer.listen(port, () => {
 
 // Start Next.js routing
 app.prepare().then(() => {
+  isNextReady = true;
   console.log('> Next.js is ready and handling requests');
 }).catch((err) => {
   console.error('Error starting Next.js:', err);
