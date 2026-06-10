@@ -67,10 +67,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.isOnboarded = (user as UserWithOnboarding).isOnboarded;
+        if (user.image) token.picture = user.image;
       }
       const patch = session as SessionPatch | undefined;
-      if (trigger === 'update' && typeof patch?.isOnboarded === 'boolean') {
-        token.isOnboarded = patch.isOnboarded;
+      if (trigger === 'update') {
+        if (typeof patch?.isOnboarded === 'boolean') {
+          token.isOnboarded = patch.isOnboarded;
+        }
+        if (typeof patch?.image === 'string') {
+          token.picture = patch.image;
+        }
       }
       return token;
     },
@@ -78,6 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token) {
         session.user.id = token.id as string;
         (session.user as typeof session.user & { isOnboarded?: unknown }).isOnboarded = token.isOnboarded;
+        if (token.picture) session.user.image = token.picture as string;
       }
       return session;
     },

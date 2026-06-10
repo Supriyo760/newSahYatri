@@ -63,8 +63,10 @@ export async function GET(req: Request) {
       .where(
         and(
           ne(personalityProfiles.userId, userId),
-          notInArray(personalityProfiles.userId, Array.from(blockedUserIds).length ? Array.from(blockedUserIds) : ['']),
-          eq(users.isOnboarded, true)
+          eq(users.isOnboarded, true),
+          blockedUserIds.size > 0 
+            ? notInArray(personalityProfiles.userId, Array.from(blockedUserIds))
+            : undefined
         )
       );
 
