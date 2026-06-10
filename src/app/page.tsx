@@ -504,7 +504,7 @@ export default function Home() {
                   <img
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     alt="Train Journey Scenery"
-                    src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=800&q=80"
+                    src="/train-sunset.jpg"
                   />
                 </TiltCard>
               </div>
