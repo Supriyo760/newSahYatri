@@ -309,10 +309,10 @@ export default function Home() {
           <TiltCard intensity={10} className="bg-white p-3 pb-5 rounded-sm shadow-[0_12px_36px_rgba(0,0,0,0.28)] border border-[#ddc0b9]/30 rotate-6">
             <img 
               className="w-full aspect-square object-cover mb-3" 
-              src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" 
-              alt="Goa beach sunset" 
+              src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=600&q=80" 
+              alt="Jagannath Puri Temple" 
             />
-            <p className="font-journal-headline text-base text-[#56423d] italic text-center">Goa&apos;s Emerald Veil</p>
+            <p className="font-journal-headline text-base text-[#56423d] italic text-center">The Soul of Puri</p>
             <p className="font-journal-label text-[8px] text-[#89726c]/60 text-center tracking-wider mt-1">VOL. 01 // ENTRY #45</p>
           </TiltCard>
         </div>
@@ -458,13 +458,13 @@ export default function Home() {
                 <TiltCard className="relative overflow-hidden rounded-2xl group h-[450px]">
                   <img
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Hidden emerald lagoon"
-                    src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80"
+                    alt="Jagannath Puri Temple"
+                    src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1b1c19]/80 via-transparent to-transparent" />
                   <div className="absolute bottom-8 left-8 text-white">
-                    <span className="font-journal-label text-xs opacity-80 text-[#fdb55c]">Sanctuary</span>
-                    <h4 className="font-journal-headline text-2xl mt-1">Goa’s Emerald Veil</h4>
+                    <span className="font-journal-label text-xs opacity-80 text-[#fdb55c]">Heritage</span>
+                    <h4 className="font-journal-headline text-2xl mt-1">The Soul of Puri</h4>
                   </div>
                 </TiltCard>
               </ScrollReveal>
