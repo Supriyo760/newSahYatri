@@ -19,245 +19,245 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
-  const httpServer = createServer((req, res) => {
+const httpServer = createServer((req, res) => {
+  try {
+    const parsedUrl = parse(req.url!, true);
+    handle(req, res, parsedUrl);
+  } catch (err) {
+    console.error('Error in request handler', err);
+    res.statusCode = 500;
+    res.end('Internal server error');
+  }
+});
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+  },
+});
+
+io.use(async (socket, next) => {
+  try {
+    const req = socket.request as any;
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    
+    const token = await getToken({ 
+      req, 
+      secret,
+      salt: process.env.NODE_ENV === 'production' ? '__Secure-authjs.session-token' : 'authjs.session-token'
+    });
+
+    if (token && token.id) {
+      socket.data.userId = token.id as string;
+      next();
+    } else {
+      next(new Error('Unauthorized'));
+    }
+  } catch (err) {
+    console.error('Socket auth error:', err);
+    next(new Error('Authentication error'));
+  }
+});
+
+const activeLocationSessions = new Map<string, number>();
+
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id, 'User:', socket.data.userId);
+
+  // ─── GROUP CHAT & REALTIME LOCATION ─────────────────────────────────────
+
+  socket.on('join_group', async ({ groupId }) => {
+    const userId = socket.data.userId;
+    if (!groupId || !userId || !(await isGroupMember(userId, groupId))) {
+      socket.emit('error', 'Not authorized for this group');
+      return;
+    }
+
+    socket.join(`group_${groupId}`);
+    console.log(`Socket ${socket.id} joined group room: group_${groupId}`);
+  });
+
+  socket.on('send_message', async (data) => {
+    const { groupId, content, type, metadata, clientMessageId } = data;
+    const senderId = socket.data.userId;
     try {
-      const parsedUrl = parse(req.url!, true);
-      handle(req, res, parsedUrl);
+      if (!groupId || !(await isGroupMember(senderId, groupId))) {
+        socket.emit('error', 'Not authorized to send to this group');
+        return;
+      }
+
+      // Ideally, check if clientMessageId already exists to ensure idempotency.
+      // For MVP, we pass it to the insert query which will fail on unique constraint if duplicated.
+
+      const [saved] = await db.insert(messages).values({
+        groupId,
+        senderId,
+        content,
+        type: type || 'text',
+        metadata: metadata || null,
+      }).returning();
+
+      io.to(`group_${groupId}`).emit('new_message', saved);
     } catch (err) {
-      console.error('Error in request handler', err);
-      res.statusCode = 500;
-      res.end('Internal server error');
+      console.error('Failed to save message:', err);
+      socket.emit('error', 'Failed to send message');
     }
   });
 
-  const io = new Server(httpServer, {
-    cors: {
-      origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-      methods: ['GET', 'POST'],
-    },
-  });
-
-  io.use(async (socket, next) => {
-    try {
-      const req = socket.request as any;
-      const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-      
-      const token = await getToken({ 
-        req, 
-        secret,
-        salt: process.env.NODE_ENV === 'production' ? '__Secure-authjs.session-token' : 'authjs.session-token'
-      });
-
-      if (token && token.id) {
-        socket.data.userId = token.id as string;
-        next();
-      } else {
-        next(new Error('Unauthorized'));
-      }
-    } catch (err) {
-      console.error('Socket auth error:', err);
-      next(new Error('Authentication error'));
-    }
-  });
-
-  const activeLocationSessions = new Map<string, number>();
-
-  io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id, 'User:', socket.data.userId);
-
-    // ─── GROUP CHAT & REALTIME LOCATION ─────────────────────────────────────
-
-    socket.on('join_group', async ({ groupId }) => {
-      const userId = socket.data.userId;
-      if (!groupId || !userId || !(await isGroupMember(userId, groupId))) {
-        socket.emit('error', 'Not authorized for this group');
-        return;
-      }
-
-      socket.join(`group_${groupId}`);
-      console.log(`Socket ${socket.id} joined group room: group_${groupId}`);
-    });
-
-    socket.on('send_message', async (data) => {
-      const { groupId, content, type, metadata, clientMessageId } = data;
-      const senderId = socket.data.userId;
-      try {
-        if (!groupId || !(await isGroupMember(senderId, groupId))) {
-          socket.emit('error', 'Not authorized to send to this group');
-          return;
-        }
-
-        // Ideally, check if clientMessageId already exists to ensure idempotency.
-        // For MVP, we pass it to the insert query which will fail on unique constraint if duplicated.
-
-        const [saved] = await db.insert(messages).values({
-          groupId,
-          senderId,
-          content,
-          type: type || 'text',
-          metadata: metadata || null,
-        }).returning();
-
-        io.to(`group_${groupId}`).emit('new_message', saved);
-      } catch (err) {
-        console.error('Failed to save message:', err);
-        socket.emit('error', 'Failed to send message');
-      }
-    });
-
-    socket.on('update_location', async (data) => {
-      const { groupId, lat, lng, name, startSharing } = data;
-      const userId = socket.data.userId;
-      
-      const sessionKey = `${groupId}_${userId}`;
-      const now = Date.now();
-
-      if (startSharing) {
-        // Start a 2-hour location sharing session
-        activeLocationSessions.set(sessionKey, now + 2 * 60 * 60 * 1000);
-      }
-
-      const expiryTime = activeLocationSessions.get(sessionKey);
-      
-      if (!expiryTime || now > expiryTime) {
-        socket.emit('location_session_expired', { message: 'Your location sharing session has expired. Please restart.' });
-        return;
-      }
-
-      if (!groupId || !(await isGroupMember(userId, groupId))) {
-        socket.emit('error', 'Not authorized to update this location');
-        return;
-      }
-
-      // Broadcast location to group without db overhead
-      socket.to(`group_${groupId}`).emit('location_updated', {
-        userId,
-        lat,
-        lng,
-        name,
-        timestamp: new Date().toISOString(),
-      });
-    });
-
-    socket.on('emergency_sos', async (data) => {
-      const { groupId, name, lat, lng, medicalOverview } = data;
-      const userId = socket.data.userId;
-      if (!groupId || !(await isGroupMember(userId, groupId))) {
-        socket.emit('error', 'Not authorized to send this emergency alert');
-        return;
-      }
-
-      // High-priority broadcast
-      io.to(`group_${groupId}`).emit('emergency_alert', {
-        userId,
-        name,
-        lat,
-        lng,
-        medicalOverview,
-        timestamp: new Date().toISOString(),
-      });
-    });
-
-    socket.on('update_itinerary', async (data) => {
-      const { groupId, items, tripId } = data;
-      const updaterId = socket.data.userId;
-      if (!groupId || !(await isGroupMember(updaterId, groupId))) {
-        socket.emit('error', 'Not authorized to update this itinerary');
-        return;
-      }
-
-      socket.to(`group_${groupId}`).emit('itinerary_updated', {
-        tripId,
-        updaterId,
-        items,
-      });
-    });
-
-    // ─── PRE-MATCH CHAT (ANONYMOUS) ─────────────────────────────────────────
-
-    socket.on('join_pre_match', async ({ chatId }) => {
-      const userId = socket.data.userId;
-      if (!chatId || !(await isPreMatchParticipant(userId, chatId))) {
-        socket.emit('error', 'Not authorized for this chat');
-        return;
-      }
-
-      socket.join(`pre_match_${chatId}`);
-      console.log(`Socket ${socket.id} joined pre-match room: pre_match_${chatId}`);
-    });
-
-    socket.on('send_pre_match_message', async (data) => {
-      const { chatId, content, clientMessageId } = data;
-      const senderId = socket.data.userId;
-      try {
-        if (!chatId || !(await isPreMatchParticipant(senderId, chatId))) {
-          socket.emit('error', 'Not authorized to send to this chat');
-          return;
-        }
-
-        let sentimentScore: number | null = null;
-        try {
-          const sentimentRes = await fetch(mlEndpoint('/api/ml/chat/sentiment'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), content }] }),
-          });
-          if (sentimentRes.ok) {
-            const sentimentData = await sentimentRes.json();
-            sentimentScore = sentimentData.average_sentiment ?? sentimentData.sentiment_score ?? null;
-          }
-        } catch {
-          sentimentScore = null;
-        }
-
-        const [saved] = await db.insert(preMatchMessages).values({
-          chatId,
-          senderId,
-          content,
-          sentimentScore,
-          clientMessageId,
-        }).returning();
-
-        if (sentimentScore !== null) {
-          await db
-            .update(preMatchChats)
-            .set({ overallSentiment: sentimentScore })
-            .where(eq(preMatchChats.id, chatId));
-        }
-
-        io.to(`pre_match_${chatId}`).emit('new_pre_match_message', saved);
-      } catch (err) {
-        console.error('Failed to save pre-match message:', err);
-        socket.emit('error', 'Failed to send message');
-      }
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected:', socket.id);
-    });
-  });
-
-  // Integration of Background Work
-  const MINUTE_MS = 60 * 1000;
-  setInterval(() => {
-    // Cleanup expired location sessions
+  socket.on('update_location', async (data) => {
+    const { groupId, lat, lng, name, startSharing } = data;
+    const userId = socket.data.userId;
+    
+    const sessionKey = `${groupId}_${userId}`;
     const now = Date.now();
-    for (const [key, expiryTime] of activeLocationSessions.entries()) {
-      if (now > expiryTime) {
-        activeLocationSessions.delete(key);
-      }
+
+    if (startSharing) {
+      // Start a 2-hour location sharing session
+      activeLocationSessions.set(sessionKey, now + 2 * 60 * 60 * 1000);
     }
-  }, MINUTE_MS);
 
-  // You can also run the medication cron here if you import it
-  // e.g. import { runMedicationCron } from './src/workers/medication-cron';
-  // setInterval(runMedicationCron, MINUTE_MS);
+    const expiryTime = activeLocationSessions.get(sessionKey);
+    
+    if (!expiryTime || now > expiryTime) {
+      socket.emit('location_session_expired', { message: 'Your location sharing session has expired. Please restart.' });
+      return;
+    }
 
-  httpServer.listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+    if (!groupId || !(await isGroupMember(userId, groupId))) {
+      socket.emit('error', 'Not authorized to update this location');
+      return;
+    }
+
+    // Broadcast location to group without db overhead
+    socket.to(`group_${groupId}`).emit('location_updated', {
+      userId,
+      lat,
+      lng,
+      name,
+      timestamp: new Date().toISOString(),
+    });
   });
+
+  socket.on('emergency_sos', async (data) => {
+    const { groupId, name, lat, lng, medicalOverview } = data;
+    const userId = socket.data.userId;
+    if (!groupId || !(await isGroupMember(userId, groupId))) {
+      socket.emit('error', 'Not authorized to send this emergency alert');
+      return;
+    }
+
+    // High-priority broadcast
+    io.to(`group_${groupId}`).emit('emergency_alert', {
+      userId,
+      name,
+      lat,
+      lng,
+      medicalOverview,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  socket.on('update_itinerary', async (data) => {
+    const { groupId, items, tripId } = data;
+    const updaterId = socket.data.userId;
+    if (!groupId || !(await isGroupMember(updaterId, groupId))) {
+      socket.emit('error', 'Not authorized to update this itinerary');
+      return;
+    }
+
+    socket.to(`group_${groupId}`).emit('itinerary_updated', {
+      tripId,
+      updaterId,
+      items,
+    });
+  });
+
+  // ─── PRE-MATCH CHAT (ANONYMOUS) ─────────────────────────────────────────
+
+  socket.on('join_pre_match', async ({ chatId }) => {
+    const userId = socket.data.userId;
+    if (!chatId || !(await isPreMatchParticipant(userId, chatId))) {
+      socket.emit('error', 'Not authorized for this chat');
+      return;
+    }
+
+    socket.join(`pre_match_${chatId}`);
+    console.log(`Socket ${socket.id} joined pre-match room: pre_match_${chatId}`);
+  });
+
+  socket.on('send_pre_match_message', async (data) => {
+    const { chatId, content, clientMessageId } = data;
+    const senderId = socket.data.userId;
+    try {
+      if (!chatId || !(await isPreMatchParticipant(senderId, chatId))) {
+        socket.emit('error', 'Not authorized to send to this chat');
+        return;
+      }
+
+      let sentimentScore: number | null = null;
+      try {
+        const sentimentRes = await fetch(mlEndpoint('/api/ml/chat/sentiment'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ id: crypto.randomUUID(), content }] }),
+        });
+        if (sentimentRes.ok) {
+          const sentimentData = await sentimentRes.json();
+          sentimentScore = sentimentData.average_sentiment ?? sentimentData.sentiment_score ?? null;
+        }
+      } catch {
+        sentimentScore = null;
+      }
+
+      const [saved] = await db.insert(preMatchMessages).values({
+        chatId,
+        senderId,
+        content,
+        sentimentScore,
+        clientMessageId,
+      }).returning();
+
+      if (sentimentScore !== null) {
+        await db
+          .update(preMatchChats)
+          .set({ overallSentiment: sentimentScore })
+          .where(eq(preMatchChats.id, chatId));
+      }
+
+      io.to(`pre_match_${chatId}`).emit('new_pre_match_message', saved);
+    } catch (err) {
+      console.error('Failed to save pre-match message:', err);
+      socket.emit('error', 'Failed to send message');
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
+  });
+});
+
+// Integration of Background Work
+const MINUTE_MS = 60 * 1000;
+setInterval(() => {
+  // Cleanup expired location sessions
+  const now = Date.now();
+  for (const [key, expiryTime] of activeLocationSessions.entries()) {
+    if (now > expiryTime) {
+      activeLocationSessions.delete(key);
+    }
+  }
+}, MINUTE_MS);
+
+// Bind to port immediately to satisfy Render health checks
+httpServer.listen(port, () => {
+  console.log(`> Listening on http://${hostname}:${port} (Waiting for Next.js to boot...)`);
+});
+
+// Start Next.js routing
+app.prepare().then(() => {
+  console.log('> Next.js is ready and handling requests');
 }).catch((err) => {
-  console.error('Error starting server:', err);
+  console.error('Error starting Next.js:', err);
   process.exit(1);
 });
