@@ -16,9 +16,11 @@ export async function GET(req: Request) {
   const limit = parseInt(searchParams.get('limit') || '20', 10);
 
   try {
+    const userId = session.user.id;
+
     // 1. Get requester profile
     const [myProfile] = await db.select().from(personalityProfiles)
-      .where(eq(personalityProfiles.userId, session.user.id)).limit(1);
+      .where(eq(personalityProfiles.userId, userId)).limit(1);
 
     if (!myProfile) {
       return errorResponse('BAD_REQUEST', 'Profile not found. Please complete onboarding.', 400);
@@ -27,8 +29,8 @@ export async function GET(req: Request) {
     // 2. Get blocked users (both ways)
     const blocks = await db.query.userBlocks.findMany({
       where: (userBlocks, { or, eq }) => or(
-        eq(userBlocks.blockerId, session.user.id),
-        eq(userBlocks.blockedId, session.user.id)
+        eq(userBlocks.blockerId, userId),
+        eq(userBlocks.blockedId, userId)
       )
     });
     const blockedUserIds = new Set(blocks.flatMap(b => [b.blockerId, b.blockedId]));
@@ -60,7 +62,8 @@ export async function GET(req: Request) {
       .innerJoin(users, eq(personalityProfiles.userId, users.id))
       .where(
         and(
-          ne(personalityProfiles.userId, session.user.id),
+          ne(personalityProfiles.userId, userId),
+          notInArray(personalityProfiles.userId, Array.from(blockedUserIds).length ? Array.from(blockedUserIds) : ['']),
           eq(users.isOnboarded, true)
         )
       );
@@ -94,7 +97,7 @@ export async function GET(req: Request) {
       }
 
       const [myMedical] = await db.select().from(medicalProfiles)
-        .where(eq(medicalProfiles.userId, session.user.id)).limit(1);
+        .where(eq(medicalProfiles.userId, userId)).limit(1);
       const [otherMedical] = await db.select().from(medicalProfiles)
         .where(eq(medicalProfiles.userId, other.userId)).limit(1);
 
