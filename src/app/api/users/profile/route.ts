@@ -84,7 +84,9 @@ export async function GET() {
 
     return successResponse({
       ...(profile || {}),
-      avatarUrl: user?.avatarUrl || null,
+      avatarUrl: user?.avatarUrl && user.avatarUrl.startsWith('data:') 
+        ? `/api/users/avatar?userId=${session.user.id}&t=${Date.now()}` 
+        : user?.avatarUrl || null,
       name: user?.name || null
     }, 200);
   } catch {

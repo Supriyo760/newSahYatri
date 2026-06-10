@@ -43,7 +43,9 @@ const providers: Provider[] = [
         id: user.id,
         email: user.email,
         name: user.name,
-        image: user.avatarUrl,
+        image: user.avatarUrl && user.avatarUrl.startsWith('data:') 
+          ? `/api/users/avatar?userId=${user.id}&t=${Date.now()}` 
+          : user.avatarUrl,
         isOnboarded: user.isOnboarded,
       };
     },
