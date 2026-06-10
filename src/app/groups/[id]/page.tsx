@@ -26,13 +26,20 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   if (!group) return notFound();
 
-  // Fetch Members
-  const members = await db.query.groupMembers.findMany({
-    where: eq(groupMembers.groupId, group.id),
-    with: {
-      user: true,
-    }
-  });
+  // Fetch Members with Users
+  const membersData = await db.select({
+    groupMember: groupMembers,
+    user: users,
+  })
+  .from(groupMembers)
+  .innerJoin(users, eq(groupMembers.userId, users.id))
+  .where(eq(groupMembers.groupId, group.id));
+
+  // Map back to the expected structure
+  const members = membersData.map(row => ({
+    ...row.groupMember,
+    user: row.user
+  }));
 
   // Verify User is a member
   const currentMember = members.find(m => m.userId === session.user?.id);
