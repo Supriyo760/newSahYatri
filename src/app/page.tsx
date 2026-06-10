@@ -483,18 +483,18 @@ export default function Home() {
                   <span className="font-journal-headline text-7xl text-[#8f361d] absolute top-2 right-6 opacity-10">
                     &ldquo;
                   </span>
-                  <h3 className="font-journal-headline text-2xl text-[#8f361d] mb-6 italic leading-relaxed">
-                    &ldquo;The most beautiful thing I found wasn&apos;t the scenery, but the shared silence of the mountains with a local herder. That moment is etched in my soul.&rdquo;
+                  <h3 className="font-journal-headline text-xl md:text-2xl text-[#8f361d] mb-6 italic leading-relaxed">
+                    &ldquo;सैर कर दुनिया की गाफ़िल, ज़िन्दगानी फिर कहाँ?<br/>ज़िन्दगी गर कुछ रही तो, नौजवानी फिर कहाँ?&rdquo;
                   </h3>
                   <div className="flex items-center gap-4">
                     <img
-                      className="w-12 h-12 rounded-full object-cover border border-[#8f361d]"
-                      alt="Elena Rodriguez"
-                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"
+                      className="w-12 h-12 rounded-full object-cover border border-[#8f361d] bg-white"
+                      alt="Rahul Sankrityayan"
+                      src="https://upload.wikimedia.org/wikipedia/commons/6/66/Rahul_Sankrityayan_1993_stamp_of_India.jpg"
                     />
                     <div>
-                      <p className="font-journal-body font-bold text-[#1b1c19]">Elena Rodriguez</p>
-                      <p className="font-journal-label text-[10px] text-[#89726c] uppercase">Wanderer since 2019</p>
+                      <p className="font-journal-body font-bold text-[#1b1c19]">Rahul Sankrityayan</p>
+                      <p className="font-journal-label text-[10px] text-[#89726c] uppercase">Father of Indian Travelogue</p>
                     </div>
                   </div>
                 </TiltCard>
@@ -503,8 +503,8 @@ export default function Home() {
                 <TiltCard className="w-full h-[400px] rounded-2xl shadow-tactile overflow-hidden group">
                   <img
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Communal meal"
-                    src="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=800&q=80"
+                    alt="Indian Thali"
+                    src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=800&q=80"
                   />
                 </TiltCard>
               </div>
