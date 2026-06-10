@@ -500,12 +500,13 @@ export default function Home() {
                 </TiltCard>
               </div>
               <div className="w-full md:w-1/2 order-1 md:order-2">
-                <TiltCard className="w-full h-[400px] rounded-2xl shadow-tactile overflow-hidden group">
+                <TiltCard className="w-full h-[400px] rounded-2xl shadow-tactile overflow-hidden group border border-[#ddc0b9]/30">
                   <img
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Train Journey Scenery"
-                    src="/train-sunset.jpg"
+                    alt="Thar Desert Journey"
+                    src="https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80"
                   />
+                  <div className="absolute inset-0 bg-[#8f361d]/10 mix-blend-overlay pointer-events-none" />
                 </TiltCard>
               </div>
             </div>
