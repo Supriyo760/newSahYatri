@@ -22,8 +22,18 @@ const handle = app.getRequestHandler();
 let isNextReady = false;
 
 const httpServer = createServer(async (req, res) => {
+  // 1. Instant health check for Render
+  if (req.url === '/healthz' || req.url === '/health') {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('OK');
+    return;
+  }
+
+  // 2. Wait for Next.js to boot
   if (!isNextReady) {
     res.statusCode = 503;
+    res.setHeader('Content-Type', 'text/plain');
     res.end('Server is booting up, please wait...');
     return;
   }
