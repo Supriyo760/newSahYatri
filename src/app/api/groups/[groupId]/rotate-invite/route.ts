@@ -6,10 +6,10 @@ import { travelGroups, groupMembers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ groupId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
-  const { id } = await params;
+  const { groupId: id } = await params;
 
   try {
     // 1. Verify user is creator of the group
