@@ -385,7 +385,7 @@ function ItineraryContent() {
                 Weaving spices and routes...
               </span>
               <p className="text-sm text-[#89726c] max-w-md mx-auto leading-relaxed">
-                SahYatri is connecting to the OpenAI model. We are scoring local restaurants, ranking hidden cultural sanctuaries, mapping safe emergency access corridors, and resolving travel styles into a singular journal.
+                SahYatri is connecting to the Google Gemini model. We are scoring local restaurants, ranking hidden cultural sanctuaries, mapping safe emergency access corridors, and resolving travel styles into a singular journal.
               </p>
               <div className="h-[1px] bg-[#89726c] w-24 mx-auto" />
               <p className="text-xs text-[#89726c] italic">

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { trips, itineraryDays, itineraryItems, personalityProfiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { generateItinerary } from '@/services/openai';
+import { generateItinerary } from '@/services/gemini';
 import { searchPlace } from '@/services/google-maps';
 import { z } from 'zod';
 import { getGroupForMember } from '@/lib/authz';
