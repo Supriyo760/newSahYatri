@@ -80,14 +80,15 @@ export default function Discover() {
       const matchRes = await fetch(`/api/matching/discover?page=${pageNumber}&limit=20`);
       const matchData = await matchRes.json();
       if (matchRes.ok) {
+        const matchesArray = matchData.data?.data || [];
         if (append) {
-          setMatches(prev => [...prev, ...(matchData.data || [])]);
+          setMatches(prev => [...prev, ...matchesArray]);
         } else {
-          setMatches(matchData.data || []);
+          setMatches(matchesArray);
         }
-        setHasMore(matchData.data.pagination?.page < matchData.data.pagination?.totalPages);
+        setHasMore(matchData.data?.pagination?.page < matchData.data?.pagination?.totalPages);
       } else {
-        setError(matchData.error || 'Failed to fetch matches. Please onboarding first.');
+        setError(matchData.error?.message || matchData.error || 'Failed to fetch matches. Please onboarding first.');
       }
 
       if (pageNumber === 1) {
