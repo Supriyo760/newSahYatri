@@ -391,8 +391,8 @@ export default function Home() {
             <TiltCard className="w-full aspect-[4/5] rounded-2xl shadow-tactile group">
               <img
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                alt="Travel notebook"
-                src="https://images.unsplash.com/photo-1531346878377-a5be20888e57?auto=format&fit=crop&w=800&q=80"
+                alt="Vintage Explorer Desk"
+                src="https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?auto=format&fit=crop&w=800&q=80"
               />
             </TiltCard>
             <div className="flex flex-col gap-6">
