@@ -136,7 +136,7 @@ export default function Discover() {
         body: JSON.stringify({ inviteCode: inviteCodeInput.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to join group');
+      if (!res.ok) throw new Error(data.error?.message || (typeof data.error === 'string' ? data.error : 'Failed to join group'));
       setMessage(`Successfully joined group: ${data.data.name}!`);
       setInviteCodeInput('');
       fetchData();
@@ -158,7 +158,10 @@ export default function Discover() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create group');
+      if (!res.ok) {
+        const errorMsg = data.error?.details?.[0]?.message || data.error?.message || (typeof data.error === 'string' ? data.error : 'Failed to create group');
+        throw new Error(errorMsg);
+      }
       setMessage(`Successfully created group: ${data.data.name}! Invite Code: ${data.data.inviteCode}`);
       setNewGroupName('');
       setNewGroupDest('');
@@ -356,54 +359,6 @@ export default function Discover() {
             </form>
           </div>
 
-          {/* Premium Billing Section */}
-          <div className="bg-[#1b1c19] text-[#fbf9f4] p-6 rounded-2xl border border-[#ddc0b9]/40 space-y-5 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#8f361d]/30 to-transparent pointer-events-none" />
-            <div className="flex justify-between items-center border-b border-[#ddc0b9]/20 pb-3">
-              <span className="font-journal-label text-[9px] text-[#fdb55c] tracking-widest uppercase font-bold">
-                PLATFORM SUBSCRIPTION
-              </span>
-              <span className="bg-[#8f361d] text-white text-[8px] font-bold px-2.5 py-0.5 rounded-full">
-                PREMIUM
-              </span>
-            </div>
-            
-            <div className="space-y-1">
-              <h4 className="font-journal-headline text-2xl text-[#fdb55c] italic">Global Nomad Premium</h4>
-              <p className="text-[10px] text-[#89726c]">Unlock all dynamic AI and safety metrics</p>
-            </div>
-
-            <div className="text-2xl font-bold flex items-baseline gap-1">
-              <span>$9.99</span>
-              <span className="text-xs text-[#89726c] font-normal">/ month</span>
-            </div>
-
-            <ul className="space-y-2.5 text-xs text-[#dcdacb]">
-              <li className="flex items-start gap-2">
-                <span className="text-[#fdb55c] font-bold">✓</span>
-                <span>Persistent **AI Safety Assistant Chatbot** bubble</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#fdb55c] font-bold">✓</span>
-                <span>Unleash **Dijkstra Dynamic Route Radar** paths</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#fdb55c] font-bold">✓</span>
-                <span>Score **XGBoost Hidden Gems** at 100% depth</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#fdb55c] font-bold">✓</span>
-                <span>Interactive **Medication Intake Checklist** logs</span>
-              </li>
-            </ul>
-
-            <button
-              onClick={handleUpgradePremium}
-              className="w-full bg-[#fdb55c] text-[#1b1c19] font-bold py-2.5 rounded-full font-journal-label text-[10px] tracking-wider uppercase hover:bg-white hover:text-[#8f361d] transition-all transform active:scale-95 shadow-tactile text-center cursor-pointer"
-            >
-              UPGRADE TO PREMIUM
-            </button>
-          </div>
 
           {/* List of Joined Groups */}
           <div className="bg-[#fbf9f4] border border-[#ddc0b9]/40 p-6 rounded-2xl space-y-4">
