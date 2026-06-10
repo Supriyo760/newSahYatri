@@ -929,15 +929,40 @@ Rules:
     `.trim();
 
     const genAI = new GoogleGenerativeAI(apiKey!);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
-      generationConfig: { responseMimeType: "application/json" }
-    });
+    const modelsToTry = [
+      "gemini-3.5-flash",
+      "gemini-3.5-pro",
+      "gemini-3.1-flash",
+      "gemini-3.1-pro",
+      "gemini-3.0-flash"
+    ];
 
-    const result = await model.generateContent(`You are SahYatri, an AI travel concierge specializing in optimized, personalized itineraries. Respond ONLY in valid JSON.\n\n${prompt}`);
+    let content = null;
+    let lastErr = null;
+
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: { responseMimeType: "application/json" }
+        });
+
+        const result = await model.generateContent(`You are SahYatri, an AI travel concierge specializing in optimized, personalized itineraries. Respond ONLY in valid JSON.\n\n${prompt}`);
+        content = result.response.text();
+        
+        if (content) {
+          console.log(`Successfully generated itinerary using ${modelName}`);
+          break; // Exit the loop if successful
+        }
+      } catch (err: any) {
+        console.warn(`Model ${modelName} failed:`, err.message);
+        lastErr = err;
+      }
+    }
     
-    const content = result.response.text();
-    if (!content) throw new Error('AI failed to generate itinerary');
+    if (!content) {
+      throw lastErr || new Error('AI failed to generate itinerary across all fallback models');
+    }
 
     return JSON.parse(content) as GeneratedItinerary;
   } catch (err: any) {
