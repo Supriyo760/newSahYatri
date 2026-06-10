@@ -17,12 +17,21 @@ export default function Onboarding() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+// Constants for dropdowns
+const NATIONALITIES = [
+  'Afghan', 'Albanian', 'Algerian', 'American', 'Andorran', 'Angolan', 'Argentinean', 'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahamian', 'Bahraini', 'Bangladeshi', 'Barbadian', 'Belarusian', 'Belgian', 'Belizean', 'Beninese', 'Bhutanese', 'Bolivian', 'Bosnian', 'Brazilian', 'British', 'Bruneian', 'Bulgarian', 'Burmese', 'Burundian', 'Cambodian', 'Cameroonian', 'Canadian', 'Cape Verdean', 'Chadian', 'Chilean', 'Chinese', 'Colombian', 'Congolese', 'Costa Rican', 'Croatian', 'Cuban', 'Cypriot', 'Czech', 'Danish', 'Dominican', 'Dutch', 'Ecuadorean', 'Egyptian', 'Emirian', 'Estonian', 'Ethiopian', 'Fijian', 'Filipino', 'Finnish', 'French', 'Gabonese', 'Gambian', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Guatemalan', 'Haitian', 'Honduran', 'Hungarian', 'Icelander', 'Indian', 'Indonesian', 'Iranian', 'Iraqi', 'Irish', 'Israeli', 'Italian', 'Jamaican', 'Japanese', 'Jordanian', 'Kazakhstani', 'Kenyan', 'Kuwaiti', 'Latvian', 'Lebanese', 'Liberian', 'Libyan', 'Lithuanian', 'Luxembourger', 'Macedonian', 'Malagasy', 'Malawian', 'Malaysian', 'Maldivan', 'Malian', 'Maltese', 'Mexican', 'Moldovan', 'Monacan', 'Mongolian', 'Moroccan', 'Mozambican', 'Namibian', 'Nepalese', 'New Zealander', 'Nicaraguan', 'Nigerian', 'Norwegian', 'Omani', 'Pakistani', 'Panamanian', 'Paraguayan', 'Peruvian', 'Polish', 'Portuguese', 'Qatari', 'Romanian', 'Russian', 'Rwandan', 'Salvadoran', 'Saudi', 'Scottish', 'Senegalese', 'Serbian', 'Singaporean', 'Slovakian', 'Slovenian', 'Somali', 'South African', 'South Korean', 'Spanish', 'Sri Lankan', 'Sudanese', 'Swedish', 'Swiss', 'Syrian', 'Taiwanese', 'Tanzanian', 'Thai', 'Tunisian', 'Turkish', 'Ugandan', 'Ukrainian', 'Uruguayan', 'Uzbekistani', 'Venezuelan', 'Vietnamese', 'Welsh', 'Yemenite', 'Zambian', 'Zimbabwean'
+];
+
+const LANGUAGES = [
+  'English', 'Mandarin Chinese', 'Hindi', 'Spanish', 'French', 'Arabic', 'Bengali', 'Russian', 'Portuguese', 'Urdu', 'Indonesian', 'German', 'Japanese', 'Marathi', 'Telugu', 'Turkish', 'Tamil', 'Cantonese', 'Vietnamese', 'Tagalog', 'Korean', 'Persian', 'Swahili', 'Italian', 'Punjabi', 'Gujarati', 'Thai', 'Kannada', 'Odia', 'Burmese', 'Ukrainian', 'Yoruba', 'Uzbek', 'Sindhi', 'Romanian', 'Dutch', 'Kurdish', 'Nepali', 'Sinhalese', 'Greek', 'Czech', 'Swedish', 'Hmong', 'Belarusian'
+];
+
   // Profile Form State
   const [profileForm, setProfileForm] = useState({
     gender: 'other',
     age: 25,
     nationality: '',
-    languagesSpoken: '',
+    languagesSpoken: [] as string[],
     travelStyle: 'mixed',
     budgetLevel: 'average',
     preferredGroupSize: 4,
@@ -69,7 +78,7 @@ export default function Onboarding() {
             travelStyle: p.travelStyle || prev.travelStyle,
             budgetLevel: p.budgetLevel || prev.budgetLevel,
             preferredGroupSize: p.preferredGroupSize || prev.preferredGroupSize,
-            languagesSpoken: p.languagesSpoken?.join(', ') || prev.languagesSpoken,
+            languagesSpoken: Array.isArray(p.languagesSpoken) ? p.languagesSpoken : (p.languagesSpoken ? p.languagesSpoken.split(',') : prev.languagesSpoken),
             openness: p.openness ?? prev.openness,
             conscientiousness: p.conscientiousness ?? prev.conscientiousness,
             extraversion: p.extraversion ?? prev.extraversion,
@@ -135,6 +144,7 @@ export default function Onboarding() {
       }
 
       setAvatarUrl(resData.data.avatarUrl);
+      await updateSession({ image: resData.data.avatarUrl });
       setMessage('Profile image updated successfully!');
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -147,8 +157,8 @@ export default function Onboarding() {
   const nextStep = () => {
     setMessage('');
     if (step === 1) {
-      if (!profileForm.nationality || !profileForm.languagesSpoken) {
-        setMessage('Error: Please fill in nationality and languages before continuing.');
+      if (!profileForm.nationality || profileForm.languagesSpoken.length === 0) {
+        setMessage('Error: Please fill in nationality and at least one language before continuing.');
         return;
       }
       setStep(2);
@@ -186,7 +196,7 @@ export default function Onboarding() {
         budgetLevel: profileForm.budgetLevel,
         riskTolerance: Math.max(1, Math.min(5, Math.round(Number(profileForm.riskTolerance) * 4 + 1))),
         preferredGroupSize: Number(profileForm.preferredGroupSize),
-        languagesSpoken: profileForm.languagesSpoken.split(',').map(s => s.trim()).filter(Boolean),
+        languagesSpoken: profileForm.languagesSpoken,
         foodPreferences: {
           streetFood: profileForm.streetFood,
           fineDining: profileForm.fineDining,
@@ -312,7 +322,7 @@ export default function Onboarding() {
 
               <div className="grid md:grid-cols-3 gap-6">
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">GENDER</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">GENDER *</label>
                   <select
                     value={profileForm.gender}
                     onChange={e => setProfileForm({ ...profileForm, gender: e.target.value })}
@@ -325,7 +335,7 @@ export default function Onboarding() {
                 </div>
 
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">AGE</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">AGE *</label>
                   <input
                     type="number"
                     value={profileForm.age}
@@ -338,27 +348,45 @@ export default function Onboarding() {
 
                 <div>
                   <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">NATIONALITY *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Indian, Canadian"
+                  <select
                     value={profileForm.nationality}
                     onChange={e => setProfileForm({ ...profileForm, nationality: e.target.value })}
                     className="w-full bg-[#fbf9f4] border border-[#ddc0b9] rounded-lg p-2.5 text-sm"
                     required
-                  />
+                  >
+                    <option value="">Select Nationality...</option>
+                    {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">LANGUAGES SPOKEN *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. English, Hindi, Spanish"
-                  value={profileForm.languagesSpoken}
-                  onChange={e => setProfileForm({ ...profileForm, languagesSpoken: e.target.value })}
-                  className="w-full bg-[#fbf9f4] border border-[#ddc0b9] rounded-lg p-2.5 text-sm placeholder:text-[#89726c]/40"
-                  required
-                />
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {profileForm.languagesSpoken.map(lang => (
+                    <span key={lang} className="bg-[#8f361d]/10 text-[#8f361d] px-3 py-1 rounded-full text-xs flex items-center gap-2 font-bold shadow-sm border border-[#8f361d]/20">
+                      {lang}
+                      <button 
+                        type="button" 
+                        onClick={() => setProfileForm({ ...profileForm, languagesSpoken: profileForm.languagesSpoken.filter(l => l !== lang) })}
+                        className="hover:text-[#ba1a1a] transition-colors"
+                      >&times;</button>
+                    </span>
+                  ))}
+                </div>
+                <select
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val && !profileForm.languagesSpoken.includes(val)) {
+                       setProfileForm({ ...profileForm, languagesSpoken: [...profileForm.languagesSpoken, val] });
+                    }
+                    e.target.value = ''; // reset select
+                  }}
+                  className="w-full bg-[#fbf9f4] border border-[#ddc0b9] rounded-lg p-2.5 text-sm"
+                >
+                  <option value="">Select a language to add...</option>
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
               </div>
             </div>
           )}
@@ -368,7 +396,7 @@ export default function Onboarding() {
             <div className="space-y-6 animate-fade-in">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">TRAVEL STYLE</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">TRAVEL STYLE *</label>
                   <select
                     value={profileForm.travelStyle}
                     onChange={e => setProfileForm({ ...profileForm, travelStyle: e.target.value })}
@@ -383,7 +411,7 @@ export default function Onboarding() {
                 </div>
 
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BUDGET LEVEL</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BUDGET LEVEL *</label>
                   <select
                     value={profileForm.budgetLevel}
                     onChange={e => setProfileForm({ ...profileForm, budgetLevel: e.target.value })}
@@ -477,7 +505,7 @@ export default function Onboarding() {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BLOOD TYPE</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BLOOD TYPE *</label>
                   <select
                     value={medicalForm.bloodType}
                     onChange={e => setMedicalForm({ ...medicalForm, bloodType: e.target.value })}
@@ -627,12 +655,12 @@ export default function Onboarding() {
 
               {/* Emergency Contacts */}
               <div className="space-y-3">
-                <label className="font-journal-label text-[10px] text-[#89726c] block">EMERGENCY CONTACTS</label>
+                <label className="font-journal-label text-[10px] text-[#89726c] block">EMERGENCY CONTACTS *</label>
                 {medicalForm.emergencyContacts.map((contact, idx) => (
                   <div key={idx} className="grid md:grid-cols-3 gap-4 bg-[#fbf9f4] p-4 rounded-xl border border-[#ddc0b9]/40">
                     <input
                       type="text"
-                      placeholder="Full Name"
+                      placeholder="Full Name *"
                       value={contact.name}
                       onChange={e => {
                         const updated = [...medicalForm.emergencyContacts];
@@ -644,7 +672,7 @@ export default function Onboarding() {
                     />
                     <input
                       type="tel"
-                      placeholder="Phone Number"
+                      placeholder="Phone Number *"
                       value={contact.phone}
                       onChange={e => {
                         const updated = [...medicalForm.emergencyContacts];
