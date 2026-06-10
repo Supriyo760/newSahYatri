@@ -490,7 +490,7 @@ export default function Home() {
                     <img
                       className="w-12 h-12 rounded-full object-cover border border-[#8f361d] bg-white"
                       alt="Rahul Sankrityayan"
-                      src="https://upload.wikimedia.org/wikipedia/commons/6/66/Rahul_Sankrityayan_1993_stamp_of_India.jpg"
+                      src="/sankrityayan.jpg"
                     />
                     <div>
                       <p className="font-journal-body font-bold text-[#1b1c19]">Rahul Sankrityayan <span className="text-[#8f361d] font-normal italic">(Ghumakkad Raj)</span></p>
@@ -503,8 +503,8 @@ export default function Home() {
                 <TiltCard className="w-full h-[400px] rounded-2xl shadow-tactile overflow-hidden group">
                   <img
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    alt="Indian Thali"
-                    src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=800&q=80"
+                    alt="Train Journey Scenery"
+                    src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=800&q=80"
                   />
                 </TiltCard>
               </div>
