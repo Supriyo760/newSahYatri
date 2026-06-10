@@ -94,7 +94,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                         <p className="text-[10px] text-[#89726c] uppercase">{m.role}</p>
                       </div>
                     </div>
-                    {isCreator && m.userId !== session.user.id && (
+                    {isCreator && m.userId !== session.user?.id && (
                       <button className="text-[10px] bg-[#ba1a1a]/10 text-[#ba1a1a] px-2 py-1 rounded font-bold hover:bg-[#ba1a1a]/20">
                         REPORT / BLOCK
                       </button>
