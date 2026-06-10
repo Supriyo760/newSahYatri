@@ -4,7 +4,6 @@ import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { uploadFile } from '@/lib/storage';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,8 +23,10 @@ export async function POST(req: NextRequest) {
       return errorResponse('BAD_REQUEST', 'File too large', 400);
     }
 
-    const avatarUrl = await uploadFile(file, 'avatars');
-
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const mimeType = file.type || 'image/jpeg';
+    const avatarUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
     await db.update(users)
       .set({ avatarUrl, updatedAt: new Date() })
       .where(eq(users.id, session.user.id));
