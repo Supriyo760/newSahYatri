@@ -162,13 +162,21 @@ export default function RegisterPage() {
 
             <div className="relative group">
               <label className="font-journal-label text-[10px] text-[#89726c] block mb-1">Nationality</label>
-              <input
-                type="text"
+              <select
                 value={nationality}
                 onChange={e => setNationality(e.target.value)}
-                placeholder="e.g. Indian"
-                className="w-full bg-transparent border-t-0 border-x-0 border-b border-[#ddc0b9] focus:ring-0 focus:border-[#8f361d] px-0 py-1.5 font-journal-body text-sm placeholder:text-[#ddc0b9]/60 transition-colors focus:outline-none"
-              />
+                className="w-full bg-transparent border-t-0 border-x-0 border-b border-[#ddc0b9] focus:ring-0 focus:border-[#8f361d] px-0 py-1.5 font-journal-body text-sm transition-colors focus:outline-none"
+                required
+              >
+                <option value="" disabled>Select nationality</option>
+                <option value="Indian">Indian</option>
+                <option value="American">American</option>
+                <option value="British">British</option>
+                <option value="Canadian">Canadian</option>
+                <option value="Australian">Australian</option>
+                <option value="European">European</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             <div className="relative group">
