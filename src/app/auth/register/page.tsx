@@ -192,44 +192,6 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <div className="mt-8">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="h-px flex-1 bg-[#ddc0b9]/30"></div>
-              <span className="font-journal-label text-[9px] text-[#89726c]">OR CONTINUE WITH</span>
-              <div className="h-px flex-1 bg-[#ddc0b9]/30"></div>
-            </div>
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  import('next-auth/react').then(({ signIn }) => signIn('google', { callbackUrl: '/dashboard' }));
-                }}
-                className="flex w-full items-center justify-center gap-2 border border-[#ddc0b9]/40 py-3 rounded-lg font-journal-body text-xs hover:bg-[#f0eee9] transition-colors cursor-pointer"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.58 15.02 1 12 1 7.24 1 3.2 3.73 1.24 7.72l3.87 3a6.98 6.98 0 0 1 6.89-5.68z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.44h6.44a5.52 5.52 0 0 1-2.4 3.62l3.73 2.89c2.18-2 3.72-4.96 3.72-8.61z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.11 14.72A7.02 7.02 0 0 1 4.7 12c0-.95.16-1.87.41-2.72L1.24 6.28A11.96 11.96 0 0 0 0 12c0 2.08.53 4.04 1.24 5.72l3.87-3z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c3.24 0 5.97-1.07 7.96-2.90l-3.73-2.89a6.98 6.98 0 0 1-10.45-3.8l-3.9 3.02C3.86 20.26 7.6 23 12 23z"
-                  />
-                </svg>
-                <span>Google</span>
-              </button>
-            </div>
-          </div>
-
           <footer className="mt-8 pt-6 border-t border-[#ddc0b9]/20 text-center">
             <Link href="/auth/login" className="font-journal-body text-xs text-[#8f361d] hover:underline cursor-pointer">
               Already have an entry? <span className="font-bold underline">Welcome back</span>

@@ -45,7 +45,7 @@ export default function Header() {
           ) : (
             <div className="flex items-center gap-4">
               <Link
-                href="/auth/register"
+                href="/auth/login"
                 className="font-journal-label text-[11px] text-[#56423d] hover:text-[#8f361d] transition-colors"
               >
                 Sign In
@@ -161,7 +161,7 @@ export default function Header() {
             {!session?.user && (
               <div className="flex flex-col gap-2 mt-auto border-t border-[#ddc0b9]/40 pt-4">
                 <Link
-                  href="/auth/register"
+                  href="/auth/login"
                   onClick={toggleDrawer}
                   className="flex items-center gap-4 p-3 rounded-xl transition-all duration-200 hover:bg-[#f0eee9] text-[#56423d]"
                 >
