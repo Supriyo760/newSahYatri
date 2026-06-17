@@ -362,7 +362,7 @@ export default function Home() {
             The intelligent, matchmaker-first travel network. Connect with compatible companions, plan journeys, and discover hidden sanctuaries together.
           </p>
           <Link
-            href="/dashboard"
+            href="/auth/register"
             className="group bg-[#8f361d] text-white px-12 py-4.5 rounded-full font-journal-label text-xs uppercase tracking-widest hover:bg-[#af4d32] transition-all shadow-tactile hover:shadow-[0_8px_30px_rgb(143,54,29,0.3)] active:scale-95 flex items-center gap-3"
           >
             <span>Begin Exploration</span>

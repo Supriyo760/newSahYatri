@@ -8,6 +8,9 @@ import { computeEmbedding } from '@/lib/matching/embedding';
 import { z } from 'zod';
 
 const profileSchema = z.object({
+  age: z.number().optional(),
+  gender: z.string().optional(),
+  nationality: z.string().optional(),
   openness: z.number().min(0).max(1),
   conscientiousness: z.number().min(0).max(1),
   extraversion: z.number().min(0).max(1),
@@ -38,18 +41,30 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = profileSchema.parse(body);
-    const embeddingVector = computeEmbedding(data);
+    const { age, gender, nationality, ...personalityData } = data;
+    
+    // We pass personalityData instead of data to avoid passing undefined properties to computeEmbedding
+    const embeddingVector = computeEmbedding(personalityData as any);
 
     await db.insert(personalityProfiles).values({
       userId: session.user.id,
-      ...data,
-      foodPreferences: data.foodPreferences,
+      ...personalityData,
+      foodPreferences: personalityData.foodPreferences,
       embeddingVector,
       completedAt: new Date(),
     }).onConflictDoUpdate({
       target: personalityProfiles.userId,
-      set: { ...data, embeddingVector, updatedAt: new Date() },
+      set: { ...personalityData, embeddingVector, updatedAt: new Date() },
     });
+
+    // Update the basic user details as well
+    if (age !== undefined || gender !== undefined || nationality !== undefined) {
+      await db.update(users).set({
+        ...(age !== undefined && { age }),
+        ...(gender !== undefined && { gender }),
+        ...(nationality !== undefined && { nationality })
+      }).where(eq(users.id, session.user.id));
+    }
 
     return NextResponse.json({ data: { success: true } }, { status: 200 });
   } catch (err) {
@@ -76,7 +91,10 @@ export async function GET() {
     const [user] = await db
       .select({
         avatarUrl: users.avatarUrl,
-        name: users.name
+        name: users.name,
+        age: users.age,
+        gender: users.gender,
+        nationality: users.nationality
       })
       .from(users)
       .where(eq(users.id, session.user.id))
@@ -87,7 +105,10 @@ export async function GET() {
       avatarUrl: user?.avatarUrl && user.avatarUrl.startsWith('data:') 
         ? `/api/users/avatar?userId=${session.user.id}&t=${Date.now()}` 
         : user?.avatarUrl || null,
-      name: user?.name || null
+      name: user?.name || null,
+      age: user?.age || null,
+      gender: user?.gender || null,
+      nationality: user?.nationality || null
     }, 200);
   } catch {
     return errorResponse('INTERNAL_ERROR', 'Failed to retrieve profile', 500);

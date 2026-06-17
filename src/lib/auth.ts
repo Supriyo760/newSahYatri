@@ -65,13 +65,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers,
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
+    async jwt({ token, user, account, trigger, session }) {
+      if (account?.provider === 'google' && user?.email) {
+        let [dbUser] = await db.select().from(users).where(eq(users.email, user.email)).limit(1);
+        if (!dbUser) {
+          [dbUser] = await db.insert(users).values({
+            email: user.email,
+            name: user.name || 'Explorer',
+            avatarUrl: user.image,
+            authProvider: 'google',
+            isVerified: true,
+          }).returning();
+        }
+        token.id = dbUser.id;
+        token.isOnboarded = dbUser.isOnboarded;
+        token.needsCompletion = dbUser.age === null;
+        if (dbUser.avatarUrl) token.picture = dbUser.avatarUrl;
+      } else if (user) {
         token.id = user.id;
         token.isOnboarded = (user as UserWithOnboarding).isOnboarded;
+        token.needsCompletion = false;
         if (user.image) token.picture = user.image;
       }
-      const patch = session as SessionPatch | undefined;
+
+      const patch = session as SessionPatch & { needsCompletion?: boolean } | undefined;
       if (trigger === 'update') {
         if (typeof patch?.isOnboarded === 'boolean') {
           token.isOnboarded = patch.isOnboarded;
@@ -79,13 +96,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (typeof patch?.image === 'string') {
           token.picture = patch.image;
         }
+        if (typeof patch?.needsCompletion === 'boolean') {
+          token.needsCompletion = patch.needsCompletion;
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
-        (session.user as typeof session.user & { isOnboarded?: unknown }).isOnboarded = token.isOnboarded;
+        (session.user as any).isOnboarded = token.isOnboarded;
+        (session.user as any).needsCompletion = token.needsCompletion;
         if (token.picture) session.user.image = token.picture as string;
       }
       return session;

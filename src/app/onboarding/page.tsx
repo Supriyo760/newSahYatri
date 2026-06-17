@@ -663,8 +663,10 @@ const LANGUAGES = [
                       placeholder="Full Name *"
                       value={contact.name}
                       onChange={e => {
+                        const val = e.target.value;
+                        if (!/^[a-zA-Z\s\-']*$/.test(val)) return;
                         const updated = [...medicalForm.emergencyContacts];
-                        updated[idx].name = e.target.value;
+                        updated[idx].name = val;
                         setMedicalForm({ ...medicalForm, emergencyContacts: updated });
                       }}
                       className="w-full border-none border-b border-[#ddc0b9] p-2 text-sm bg-transparent"
@@ -675,8 +677,10 @@ const LANGUAGES = [
                       placeholder="Phone Number *"
                       value={contact.phone}
                       onChange={e => {
+                        const val = e.target.value;
+                        if (!/^\+?[0-9]*$/.test(val)) return;
                         const updated = [...medicalForm.emergencyContacts];
-                        updated[idx].phone = e.target.value;
+                        updated[idx].phone = val;
                         setMedicalForm({ ...medicalForm, emergencyContacts: updated });
                       }}
                       className="w-full border-none border-b border-[#ddc0b9] p-2 text-sm bg-transparent"
@@ -687,8 +691,10 @@ const LANGUAGES = [
                       placeholder="Relationship (e.g. Spouse)"
                       value={contact.relationship}
                       onChange={e => {
+                        const val = e.target.value;
+                        if (!/^[a-zA-Z\s\-']*$/.test(val)) return;
                         const updated = [...medicalForm.emergencyContacts];
-                        updated[idx].relationship = e.target.value;
+                        updated[idx].relationship = val;
                         setMedicalForm({ ...medicalForm, emergencyContacts: updated });
                       }}
                       className="w-full border-none border-b border-[#ddc0b9] p-2 text-sm bg-transparent"
