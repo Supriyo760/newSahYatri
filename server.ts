@@ -55,22 +55,14 @@ const io = new Server(httpServer, {
   },
 });
 
-io.use(async (socket, next) => {
+io.use((socket, next) => {
   try {
-    const req = socket.request as any;
-    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-    
-    const token = await getToken({ 
-      req, 
-      secret,
-      salt: process.env.NODE_ENV === 'production' ? '__Secure-authjs.session-token' : 'authjs.session-token'
-    });
-
-    if (token && token.id) {
-      socket.data.userId = token.id as string;
+    const userId = socket.handshake.auth?.userId;
+    if (userId) {
+      socket.data.userId = userId;
       next();
     } else {
-      next(new Error('Unauthorized'));
+      next(new Error('Unauthorized: No userId provided in handshake'));
     }
   } catch (err) {
     console.error('Socket auth error:', err);
@@ -94,6 +86,11 @@ io.on('connection', (socket) => {
 
     socket.join(`group_${groupId}`);
     console.log(`Socket ${socket.id} joined group room: group_${groupId}`);
+    
+    // Broadcast updated active members
+    const clients = await io.in(`group_${groupId}`).fetchSockets();
+    const activeUserIds = clients.map(c => c.data.userId);
+    io.to(`group_${groupId}`).emit('active_members', activeUserIds);
   });
 
   socket.on('send_message', async (data) => {
@@ -279,6 +276,20 @@ io.on('connection', (socket) => {
 
     // We can broadcast that messages have been read
     socket.to(`direct_${chatId}`).emit('messages_read', { byUserId: userId, time: new Date().toISOString() });
+  });
+
+  socket.on('disconnecting', async () => {
+    // Broadcast to groups that this user is leaving
+    for (const room of socket.rooms) {
+      if (room.startsWith('group_')) {
+        const clients = await io.in(room).fetchSockets();
+        // Exclude the currently disconnecting socket
+        const activeUserIds = clients
+          .filter(c => c.id !== socket.id)
+          .map(c => c.data.userId);
+        socket.to(room).emit('active_members', activeUserIds);
+      }
+    }
   });
 
   socket.on('disconnect', () => {

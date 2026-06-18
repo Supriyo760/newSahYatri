@@ -702,7 +702,11 @@ function ItineraryContent() {
 
                 {workflowTab === 'chat' && currentUserId && (
                   <div className="h-[440px]">
-                    <GroupChat groupId={selectedGroupId} currentUserId={currentUserId} />
+                    <GroupChat 
+                      groupId={selectedGroupId} 
+                      currentUserId={currentUserId} 
+                      groupMembers={groupMembers}
+                    />
                   </div>
                 )}
 

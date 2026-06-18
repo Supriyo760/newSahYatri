@@ -10,10 +10,13 @@ interface UseSocketProps {
 export function useSocket({ groupId, chatId, userId }: UseSocketProps = {}) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<string[]>([]);
 
   useEffect(() => {
-    // Connect to server (same origin)
-    const socketInstance = io();
+    // Connect to server (same origin) and pass userId for auth
+    const socketInstance = io({
+      auth: { userId }
+    });
     
     // Defer state update to prevent synchronous cascading renders inside the effect
     Promise.resolve().then(() => {
@@ -31,8 +34,13 @@ export function useSocket({ groupId, chatId, userId }: UseSocketProps = {}) {
       }
     });
 
+    socketInstance.on('active_members', (userIds: string[]) => {
+      setActiveUsers(userIds);
+    });
+
     socketInstance.on('disconnect', () => {
       setIsConnected(false);
+      setActiveUsers([]);
       console.log('Socket client disconnected');
     });
 
@@ -44,5 +52,6 @@ export function useSocket({ groupId, chatId, userId }: UseSocketProps = {}) {
   return {
     socket,
     isConnected,
+    activeUsers,
   };
 }
