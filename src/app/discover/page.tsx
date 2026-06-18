@@ -70,11 +70,6 @@ export default function Discover() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
-
-  const handleUpgradePremium = async () => {
-    setMessage('Premium upgrades are temporarily disabled while we migrate to our new billing provider. Coming soon!');
-  };
 
   // Fetch data
   const fetchData = async (pageNumber = 1, append = false) => {

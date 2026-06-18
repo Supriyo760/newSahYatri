@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', async (data) => {
-    const { groupId, content, type, metadata, clientMessageId } = data;
+    const { groupId, content, type, metadata } = data;
     const senderId = socket.data.userId;
     try {
       if (!groupId || !(await isGroupMember(senderId, groupId))) {

@@ -21,25 +21,29 @@ export default function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchConnectionsAndChats = async () => {
-    try {
-      const [connRes, chatsRes] = await Promise.all([
-        fetch('/api/connections'),
-        fetch('/api/inbox')
-      ]);
-      const connData = await connRes.json();
-      const chatsData = await chatsRes.json();
-      if (connRes.ok) setConnections(connData.data);
-      if (chatsRes.ok) setChats(chatsData.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let mounted = true;
+    const fetchConnectionsAndChats = async () => {
+      try {
+        const [connRes, chatsRes] = await Promise.all([
+          fetch('/api/connections'),
+          fetch('/api/inbox')
+        ]);
+        const connData = await connRes.json();
+        const chatsData = await chatsRes.json();
+        if (!mounted) return;
+        if (connRes.ok) setConnections(connData.data);
+        if (chatsRes.ok) setChats(chatsData.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
     fetchConnectionsAndChats();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Socket logic
@@ -52,7 +56,7 @@ export default function InboxPage() {
       setOtherUserTyping(data.isTyping);
     };
 
-    const handleMessagesRead = (data: any) => {
+    const handleMessagesRead = () => {
       setMessages(prev => prev.map(m => ({ ...m, isRead: true })));
     };
 
@@ -68,8 +72,6 @@ export default function InboxPage() {
   // Messages polling (for MVP simplicity, we can also use sockets)
   useEffect(() => {
     if (!selectedChatId) return;
-    
-    let interval: NodeJS.Timeout;
 
     const fetchMessages = async () => {
       try {
@@ -90,7 +92,7 @@ export default function InboxPage() {
     };
 
     fetchMessages();
-    interval = setInterval(fetchMessages, 3000); // simple polling for incoming messages
+    const interval = setInterval(fetchMessages, 3000); // simple polling for incoming messages
     return () => clearInterval(interval);
   }, [selectedChatId, socket]);
 
@@ -102,8 +104,8 @@ export default function InboxPage() {
         body: JSON.stringify({ connectionId, action }),
       });
       if (res.ok) {
-        fetchConnectionsAndChats();
-        if (action === 'accept') setActiveTab('chats');
+        // Optimistically update UI or do a fetch (for MVP we'll just reload the page since fetchConnectionsAndChats is now inside useEffect)
+        window.location.reload();
       }
     } catch (err) {
       console.error(err);
