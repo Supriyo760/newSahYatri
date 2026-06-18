@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Module Schedule - Split View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<style data-purpose="custom-fonts">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+</style>
+<style data-purpose="custom-styles">
+    .timeline-grid {
+      background-image: linear-gradient(to right, #f1f5f9 1px, transparent 1px);
+      background-size: 20% 100%;
+    }
+    .module-bar-stripes-light {
+      background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, #f1f5f9 5px, #f1f5f9 10px);
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+</style>
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { dark: '#1e293b', blue: '#3b82f6', purple: '#8b5cf6', green: '#22c55e', gray: '#94a3b8' }
+          },
+          fontSize: { 'xxs': '0.65rem' }
+        }
+      }
+    }
+</script>
+</head>
+<body class="bg-white h-screen flex flex-col overflow-hidden text-slate-800">
+
+<!-- Header -->
+<header class="bg-brand-dark text-slate-300 py-2 px-4 flex items-center justify-between border-b border-slate-800 shrink-0 h-10 w-full">
+  <div class="flex items-center space-x-4">
+    <div class="flex space-x-1.5 mr-2">
+      <div class="w-3 h-3 rounded-full bg-red-500"></div>
+      <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+      <div class="w-3 h-3 rounded-full bg-green-500"></div>
+    </div>
+    <div class="text-xs font-mono flex items-center space-x-2 text-slate-400">
+      <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      <span class="hover:text-white cursor-pointer">manage</span>
+      <span class="text-slate-600">/</span>
+      <span class="hover:text-white cursor-pointer">Stanford Splash 2026</span>
+      <span class="text-slate-600">/</span>
+      <span class="text-white font-medium">module_schedule</span>
+    </div>
+  </div>
+  <div class="bg-slate-800/50 border border-slate-700/50 px-3 py-1 rounded-full text-xs font-semibold text-slate-300 flex items-center space-x-1.5 cursor-pointer">
+    <div class="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px]">A</div>
+    <span>admin</span>
+  </div>
+</header>
+
+<!-- Tabs Nav -->
+<nav class="bg-white border-b border-gray-200 px-4 flex items-center justify-between shrink-0 h-12">
+  <div class="flex space-x-6 h-full">
+    <button class="flex items-center space-x-2 h-full border-b-2 border-transparent hover:border-gray-300 text-gray-500 font-medium text-sm">
+      <span class="w-2 h-2 rounded-full bg-blue-500"></span><span>Student Modules</span>
+      <span class="bg-blue-50 text-blue-600 text-xs py-0.5 px-2 rounded-full font-semibold border border-blue-100">6</span>
+    </button>
+    <button class="flex items-center space-x-2 h-full border-b-2 border-transparent hover:border-gray-300 text-gray-500 font-medium text-sm">
+      <span class="w-2 h-2 rounded-full bg-purple-500"></span><span>Teacher Modules</span>
+      <span class="bg-purple-50 text-purple-600 text-xs py-0.5 px-2 rounded-full font-semibold border border-purple-100">2</span>
+    </button>
+    <button class="flex items-center space-x-2 h-full border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+      <span class="w-2 h-2 rounded-full bg-gray-300"></span><span>All Modules</span>
+      <span class="bg-gray-100 text-gray-600 text-xs py-0.5 px-2 rounded-full font-semibold border border-gray-200">8</span>
+    </button>
+  </div>
+  <button class="flex items-center space-x-1 border border-blue-200 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-100 shadow-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+    <span>Split View</span>
+  </button>
+</nav>
+
+<!-- Toolbar -->
+<div class="flex items-center justify-between px-6 py-3 border-b border-gray-200 shrink-0 bg-white">
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2 text-sm text-gray-500 font-medium">
+      <span>Range:</span>
+      <div class="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700">Oct 1</div>
+      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      <div class="border border-gray-300 rounded px-2 py-1 bg-white text-gray-700">Dec 15</div>
+    </div>
+    <button class="flex items-center gap-1 border border-gray-300 rounded px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg> Add Module
+    </button>
+  </div>
+  <div class="flex items-center gap-4 text-xs font-medium text-gray-500">
+    <div class="flex items-center gap-1.5"><div class="w-4 h-2.5 rounded bg-blue-600"></div> Active now</div>
+    <div class="flex items-center gap-1.5"><div class="w-4 h-2.5 rounded border border-blue-300 bg-blue-100"></div> Scheduled</div>
+    <div class="flex items-center gap-1.5"><div class="w-4 h-2.5 rounded border border-green-300 bg-green-100"></div> Always on</div>
+    <div class="flex items-center gap-1.5"><div class="w-4 h-2.5 rounded border border-dashed border-gray-300 module-bar-stripes-light"></div> Closed</div>
+  </div>
+</div>
+
+<!-- Split Panes -->
+<main class="flex-1 flex overflow-hidden">
+
+  <!-- LEFT: Student Pane -->
+  <section class="flex-1 flex flex-col border-r-2 border-gray-300 bg-white relative">
+    <header class="h-10 border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
+      <div class="flex items-center space-x-2 text-sm font-bold text-blue-600 uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+        <span>Student Modules</span>
+        <span class="bg-blue-50 text-blue-500 text-xxs px-1.5 py-0.5 rounded uppercase font-semibold border border-blue-100">6 active</span>
+      </div>
+      <div class="text-xs text-gray-400 font-medium">seq · time →</div>
+    </header>
+    <div class="h-8 border-b border-gray-100 relative shrink-0 bg-white">
+      <div class="absolute inset-0 left-48 right-4 flex text-xs text-gray-500 font-medium">
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Oct 1</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Oct 15</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1 text-gray-800 font-bold">Nov 1</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Nov 15</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Dec 1</div>
+      </div>
+
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+      <div class="absolute inset-0 left-48 right-4 pointer-events-none z-0"><div class="w-full h-full timeline-grid"></div></div>
+      <div class="absolute top-0 bottom-0 left-48 right-4 pointer-events-none z-20">
+        <div class="absolute top-0 bottom-0 left-[40%] w-px bg-red-400"></div>
+        <div class="absolute top-1 left-[40%] transform -translate-x-1/2 pointer-events-auto z-30">
+          <span class="bg-red-50 text-red-500 border border-red-200 text-[10px] font-bold px-1 py-0.5 rounded shadow-sm">NOW</span>
+        </div>
+      </div>
+      <div class="relative z-10 py-2">
+        <!-- Row 1: profile module -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-green-200 bg-green-50 text-green-600 flex items-center justify-center text-xs font-bold mr-3">1</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-green-600 truncate">profile module</span><span class="text-xs text-gray-400">always-on</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-0 right-4 h-8 bg-green-100 border border-green-300 rounded-md flex items-center justify-between px-3">
+              <span class="text-sm font-semibold text-green-800 border-l-2 border-green-500 pl-2">profile module</span>
+              <div class="flex items-center space-x-2 text-green-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Row 2: 2-phase lottery -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-blue-200 bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold mr-3">2</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-slate-700">2-phase lottery</span><span class="text-xs text-gray-400">student</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[35%] w-[40%] h-8 bg-blue-100 border border-blue-300 rounded-md flex items-center justify-between px-3 shadow-sm z-10">
+              <span class="text-sm font-semibold text-blue-800 border-l-2 border-blue-500 pl-2">2-phase lottery</span>
+              <span class="text-xxs bg-blue-200 text-blue-700 px-1 rounded">req</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 3: class reg (Active) -->
+        <div class="flex items-center group h-14 bg-blue-50/30">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold mr-3 shadow-sm">3</div>
+            <div class="flex flex-col">
+              <span class="text-sm font-semibold text-blue-600">class reg</span>
+              <span class="text-xs text-blue-500 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1"></span>active</span>
+            </div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[45%] w-[45%] h-8 bg-blue-600 rounded-md flex items-center justify-between px-3 shadow-md z-10 text-white border border-blue-700">
+              <span class="text-sm font-semibold border-l-2 border-white pl-2">class reg</span>
+              <span class="text-xxs bg-blue-500/50 border border-blue-400 px-1 rounded">req</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 4: finaid -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-blue-200 bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold mr-3">4</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-slate-700">finaid module</span><span class="text-xs text-gray-400">student</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[55%] w-[35%] h-8 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between px-3 z-10">
+              <span class="text-sm font-semibold text-blue-700 border-l-2 border-blue-300 pl-2">finaid module</span>
+              <span class="text-xxs bg-gray-100 text-gray-500 border border-gray-200 px-1 rounded">opt</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 5: custom form -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-blue-200 bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold mr-3">5</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-slate-700">custom form</span><span class="text-xs text-gray-400">student</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[45%] w-[25%] h-8 bg-blue-50 border border-blue-200 rounded-md flex items-center justify-between px-3 z-10">
+              <span class="text-sm font-semibold text-blue-700 border-l-2 border-blue-300 pl-2">custom form</span>
+              <span class="text-xxs bg-gray-100 text-gray-500 border border-gray-200 px-1 rounded">opt</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 6: phase zero -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-green-200 bg-green-50 text-green-600 flex items-center justify-center text-xs font-bold mr-3">6</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-green-600">phase zero</span><span class="text-xs text-gray-400">always-on</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-0 right-4 h-8 bg-green-100 border border-green-300 rounded-md flex items-center justify-between px-3">
+              <span class="text-sm font-semibold text-green-800 border-l-2 border-green-500 pl-2">phase zero</span>
+              <div class="flex items-center space-x-2 text-green-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Student Scrubber -->
+    <div class="h-12 border-t border-gray-200 bg-gray-50 flex items-center px-4 shrink-0">
+      <div class="text-xs font-bold text-gray-400 mr-4 tracking-widest flex items-center">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>SCRUB
+      </div>
+      <div class="flex-1 relative flex items-center h-full">
+        <div class="absolute left-0 right-0 h-1.5 bg-gray-200 rounded-full"></div>
+        <div class="absolute left-0 w-[40%] h-1.5 bg-blue-300 rounded-l-full"></div>
+        <div class="absolute left-[40%] w-4 h-4 bg-white border-2 border-blue-500 rounded-full transform -translate-x-1/2 cursor-pointer shadow-sm"></div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded px-2.5 py-1 text-xs font-mono font-medium text-slate-700 ml-4 shadow-sm">Nov 8, 2025</div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Teacher Pane -->
+  <section class="flex-1 flex flex-col bg-white relative">
+    <header class="h-10 border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
+      <div class="flex items-center space-x-2 text-sm font-bold text-purple-600 uppercase tracking-wider">
+        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+        <span>Teacher Modules</span>
+        <span class="bg-purple-50 text-purple-500 text-xxs px-1.5 py-0.5 rounded uppercase font-semibold border border-purple-100">2 active</span>
+      </div>
+      <div class="text-xs text-gray-400 font-medium">seq · time →</div>
+    </header>
+    <div class="h-8 border-b border-gray-100 relative shrink-0 bg-white">
+      <div class="absolute inset-0 left-48 right-4 flex text-xs text-gray-500 font-medium">
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Oct 1</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Oct 15</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1 text-gray-800 font-bold">Nov 1</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Nov 15</div>
+        <div class="flex-1 relative border-l border-gray-200 pt-1 pl-1">Dec 1</div>
+      </div>
+
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar relative">
+      <div class="absolute inset-0 left-48 right-4 pointer-events-none z-0"><div class="w-full h-full timeline-grid"></div></div>
+      <div class="absolute top-0 bottom-0 left-48 right-4 pointer-events-none z-20">
+        <div class="absolute top-0 bottom-0 left-[40%] w-px bg-red-400"></div>
+        <div class="absolute top-1 left-[40%] transform -translate-x-1/2 pointer-events-auto z-30">
+          <span class="bg-red-50 text-red-500 border border-red-200 text-[10px] font-bold px-1 py-0.5 rounded shadow-sm">NOW</span>
+        </div>
+      </div>
+      <div class="relative z-10 py-2">
+        <!-- Row 1: teacher reg (Active) -->
+        <div class="flex items-center group h-14 bg-purple-50/30">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold mr-3 shadow-sm">1</div>
+            <div class="flex flex-col">
+              <span class="text-sm font-semibold text-purple-700">teacher reg</span>
+              <span class="text-xs text-purple-500 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1"></span>active</span>
+            </div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[35%] w-[55%] h-8 bg-purple-600 rounded-md flex items-center justify-between px-3 shadow-md z-10 text-white border border-purple-700">
+              <span class="text-sm font-semibold border-l-2 border-white pl-2">teacher reg</span>
+              <span class="text-xxs bg-purple-500/50 border border-purple-400 px-1 rounded">req</span>
+            </div>
+          </div>
+        </div>
+        <!-- Row 2: class approval -->
+        <div class="flex items-center group h-14 hover:bg-gray-50">
+          <div class="w-48 pl-2 pr-4 flex items-center">
+            <div class="text-gray-300 mr-2 cursor-grab"><svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path></svg></div>
+            <div class="w-6 h-6 rounded-full border border-purple-200 bg-purple-50 text-purple-600 flex items-center justify-center text-xs font-bold mr-3">2</div>
+            <div class="flex flex-col"><span class="text-sm font-semibold text-slate-700">class approval</span><span class="text-xs text-gray-400">teacher</span></div>
+          </div>
+          <div class="flex-1 relative pr-4 h-full flex items-center">
+            <div class="absolute left-[20%] right-[10%] h-8 border border-dashed border-gray-200 rounded-md module-bar-stripes-light"></div>
+            <div class="absolute left-[50%] w-[45%] h-8 bg-purple-50 border border-purple-200 rounded-md flex items-center justify-between px-3 z-10">
+              <span class="text-sm font-semibold text-purple-800 border-l-2 border-purple-300 pl-2">class approval</span>
+              <span class="text-xxs bg-purple-100 text-purple-600 border border-purple-200 px-1 rounded">req</span>
+            </div>
+          </div>
+        </div>
+        <!-- Empty slots -->
+        <div class="flex items-center h-14 opacity-30">
+          <div class="w-48 pl-10 pr-4 flex items-center"><span class="text-sm text-gray-400 italic">— empty</span></div>
+        </div>
+        <div class="flex items-center h-14 opacity-30">
+          <div class="w-48 pl-10 pr-4 flex items-center"><span class="text-sm text-gray-400 italic">— empty</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Teacher Scrubber -->
+    <div class="h-12 border-t border-gray-200 bg-gray-50 flex items-center px-4 shrink-0">
+      <div class="text-xs font-bold text-gray-400 mr-4 tracking-widest flex items-center">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>SCRUB
+      </div>
+      <div class="flex-1 relative flex items-center h-full">
+        <div class="absolute left-0 right-0 h-1.5 bg-gray-200 rounded-full"></div>
+        <div class="absolute left-0 w-[40%] h-1.5 bg-purple-300 rounded-l-full"></div>
+        <div class="absolute left-[40%] w-4 h-4 bg-white border-2 border-purple-500 rounded-full transform -translate-x-1/2 cursor-pointer shadow-sm"></div>
+      </div>
+      <div class="bg-white border border-gray-200 rounded px-2.5 py-1 text-xs font-mono font-medium text-slate-700 ml-4 shadow-sm">Nov 8, 2025</div>
+    </div>
+  </section>
+</main>
+
+</body></html>

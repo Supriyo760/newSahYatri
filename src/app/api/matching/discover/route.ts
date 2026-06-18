@@ -3,9 +3,8 @@ import { successResponse, errorResponse } from '@/lib/api-response';
 import { auth } from '@/lib/auth';
 import { db } from '@/db';
 import { medicalProfiles, personalityProfiles, users } from '@/db/schema';
-import { eq, ne, and, notInArray } from 'drizzle-orm';
-import { getCompatibility } from '@/lib/matching/compatibility';
-import { mlEndpoint } from '@/services/ml';
+import { eq, ne, and, notInArray, sql } from 'drizzle-orm';
+import { getCompatibility, calculateConflictProbability } from '@/lib/matching/compatibility';
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -35,7 +34,7 @@ export async function GET(req: Request) {
     });
     const blockedUserIds = new Set(blocks.flatMap(b => [b.blockerId, b.blockedId]));
 
-    // 3. Get all other profiles of onboarded users
+    // 3. Get all other profiles of onboarded users, ordered by vector similarity
     const otherProfilesQuery = await db
       .select({
         id: personalityProfiles.id,
@@ -68,40 +67,40 @@ export async function GET(req: Request) {
             ? notInArray(personalityProfiles.userId, Array.from(blockedUserIds))
             : undefined
         )
-      );
+      )
+      .orderBy(
+        myProfile.embeddingVector
+          ? sql`${personalityProfiles.embeddingVector} <=> ${JSON.stringify(myProfile.embeddingVector)}::vector`
+          : sql`random()`
+      )
+      .limit(50); // Scalable: only fetch the top 50 most similar profiles
 
     const otherProfiles = otherProfilesQuery.filter(p => !blockedUserIds.has(p.userId));
 
-    // 4. Compute compatibility for all pairs and query AI microservice
+    // 4. Compute compatibility for all pairs and use Node.js conflict prediction
     const matches = [];
+    
+    // Fetch medical profiles in bulk to avoid N+1 query problem
+    const otherUserIds = otherProfiles.map(p => p.userId);
+    const medicalProfilesList = otherUserIds.length > 0 
+      ? await db.select().from(medicalProfiles).where(
+          and(
+            // include my own medical profile and others
+            sql`${medicalProfiles.userId} IN (${sql.join([userId, ...otherUserIds], sql`, `)})`
+          )
+        )
+      : [];
+      
+    const myMedical = medicalProfilesList.find(m => m.userId === userId);
+    const medicalMap = new Map(medicalProfilesList.map(m => [m.userId, m]));
+
     for (const other of otherProfiles) {
       const matchDetails = await getCompatibility(myProfile, other);
       
-      // Call Python FastAPI for conflict prediction
-      let conflictProbability = 0;
-      try {
-        const mlRes = await fetch(mlEndpoint('/api/ml/matching/conflict'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_a_features: myProfile.embeddingVector || [],
-            user_b_features: other.embeddingVector || [],
-          }),
-        });
-        
-        if (mlRes.ok) {
-          const mlData = await mlRes.json();
-          conflictProbability = mlData.conflict_probability;
-        }
-      } catch {
-        console.warn('FastAPI unavailable, using fallback conflict probability');
-        conflictProbability = 0.5;
-      }
+      // Node.js based conflict prediction
+      const conflictProbability = calculateConflictProbability(myProfile, other);
 
-      const [myMedical] = await db.select().from(medicalProfiles)
-        .where(eq(medicalProfiles.userId, userId)).limit(1);
-      const [otherMedical] = await db.select().from(medicalProfiles)
-        .where(eq(medicalProfiles.userId, other.userId)).limit(1);
+      const otherMedical = medicalMap.get(other.userId);
 
       const myCategories = new Set(myMedical?.conditionCategories || []);
       const otherCategories = new Set(otherMedical?.conditionCategories || []);

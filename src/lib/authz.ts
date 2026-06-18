@@ -89,3 +89,23 @@ export async function isPreMatchParticipant(userId: string, chatId: string) {
 
   return Boolean(chat);
 }
+
+export async function isDirectChatParticipant(userId: string, chatId: string) {
+  const { directChats } = await import('@/db/schema');
+  const [chat] = await db
+    .select({ id: directChats.id })
+    .from(directChats)
+    .where(
+      and(
+        eq(directChats.id, chatId),
+        or(
+          eq(directChats.userAId, userId),
+          eq(directChats.userBId, userId),
+        ),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(chat);
+}
+

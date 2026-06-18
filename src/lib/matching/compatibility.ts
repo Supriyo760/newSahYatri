@@ -173,3 +173,38 @@ export async function getCompatibility(
 
   return results;
 }
+
+/**
+ * Calculates a basic conflict probability based on extreme differences in Big 5 traits
+ * Range: [0.0, 1.0]
+ */
+export function calculateConflictProbability(pA: ProfileFields, pB: ProfileFields): number {
+  let riskScore = 0;
+
+  // Rule 1: High Neuroticism + Low Agreeableness = High Friction
+  if ((pA.neuroticism > 0.7 && pB.agreeableness < 0.3) || (pB.neuroticism > 0.7 && pA.agreeableness < 0.3)) {
+    riskScore += 0.3;
+  }
+
+  // Rule 2: Extreme differences in Conscientiousness (Planner vs Spontaneous)
+  const consDiff = Math.abs(pA.conscientiousness - pB.conscientiousness);
+  if (consDiff > 0.6) {
+    riskScore += 0.25;
+  }
+
+  // Rule 3: Extreme differences in Budget Level
+  const budgetWeight: Record<string, number> = { minimal: 1, average: 2, premium: 3 };
+  const budgetDiff = Math.abs(budgetWeight[pA.budgetLevel] - budgetWeight[pB.budgetLevel]);
+  if (budgetDiff === 2) { // minimal vs premium
+    riskScore += 0.2;
+  }
+
+  // Rule 4: Extreme differences in Risk Tolerance
+  const riskTolDiff = Math.abs(pA.riskTolerance - pB.riskTolerance);
+  if (riskTolDiff >= 3) {
+    riskScore += 0.2;
+  }
+
+  // Cap at 0.95
+  return Math.min(0.95, riskScore);
+}

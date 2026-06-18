@@ -58,6 +58,12 @@ export default function Discover() {
   const [inviteCodeInput, setInviteCodeInput] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDest, setNewGroupDest] = useState('');
+  const [connectionsState, setConnectionsState] = useState<{
+    pendingSent: any[];
+    pendingReceived: any[];
+    active: any[];
+  }>({ pendingSent: [], pendingReceived: [], active: [] });
+  const [actionLoading, setActionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -97,6 +103,12 @@ export default function Discover() {
         if (groupRes.ok) {
           setGroups(groupData.data || []);
         }
+
+        const connRes = await fetch('/api/connections');
+        const connData = await connRes.json();
+        if (connRes.ok) {
+          setConnectionsState(connData.data);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -124,6 +136,30 @@ export default function Discover() {
     setMessage('User blocked successfully.');
     setSelectedMatch(null);
     setMatches(prev => prev.filter(m => m.user.id !== userId));
+  };
+
+  const handleConnect = async (userId: string) => {
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/connections/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to connect');
+      
+      setMessage('Connection request sent!');
+      // Update local state so UI updates immediately
+      setConnectionsState(prev => ({
+        ...prev,
+        pendingSent: [...prev.pendingSent, { recipientId: userId }]
+      }));
+    } catch (err: any) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleJoinGroup = async (e: React.FormEvent) => {
@@ -226,9 +262,9 @@ export default function Discover() {
               )}
 
               {matches.map((match) => (
-                <Link
+                <div
                   key={match.user.id}
-                  href={`/profile/${match.user.id}`}
+                  onClick={() => setSelectedMatch(match)}
                   className="group relative flex flex-col items-center bg-white p-5 pb-8 rounded-2xl shadow-tactile border border-[#ddc0b9]/30 transition-transform duration-500 hover:-translate-y-2 cursor-pointer block"
                 >
                   <div className="relative w-full aspect-[4/5] overflow-hidden mb-6 rounded-lg bg-[#f0eee9]">
@@ -269,7 +305,7 @@ export default function Discover() {
                       &ldquo;Seeking to explore hidden sanctuaries and share authentic culinary discoveries...&rdquo;
                     </p>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
@@ -620,19 +656,52 @@ export default function Discover() {
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 pt-4 border-t border-[#ddc0b9]/40">
               <div className="flex flex-col md:flex-row gap-3">
-                <button
-                  onClick={() => {
-                    setSelectedMatch(null);
-                    const createGroupEl = document.getElementById('new-group-name');
-                    if (createGroupEl) {
-                      createGroupEl.focus();
-                    }
-                    setMessage(`Start planning! Form a group and invite ${selectedMatch.user.name || 'your match'}.`);
-                  }}
-                  className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md"
-                >
-                  FORM TRAVEL GROUP
-                </button>
+                {(() => {
+                  const targetId = selectedMatch.user.id;
+                  const isPendingSent = connectionsState.pendingSent.some(c => c.recipientId === targetId);
+                  const isPendingReceived = connectionsState.pendingReceived.some(c => c.initiatorId === targetId);
+                  const isActive = connectionsState.active.some(c => c.initiatorId === targetId || c.recipientId === targetId);
+
+                  if (isActive) {
+                    return (
+                      <Link
+                        href="/inbox"
+                        className="flex-1 bg-[#435848] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#2c3d30] transition-colors cursor-pointer text-center font-bold shadow-md"
+                      >
+                        OPEN CHAT
+                      </Link>
+                    );
+                  } else if (isPendingSent) {
+                    return (
+                      <button
+                        disabled
+                        className="flex-1 bg-[#e4e2dd] text-[#89726c] py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase cursor-not-allowed text-center font-bold"
+                      >
+                        REQUEST SENT
+                      </button>
+                    );
+                  } else if (isPendingReceived) {
+                    return (
+                      <Link
+                        href="/inbox"
+                        className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md"
+                      >
+                        RESPOND IN INBOX
+                      </Link>
+                    );
+                  } else {
+                    return (
+                      <button
+                        onClick={() => handleConnect(targetId)}
+                        disabled={actionLoading}
+                        className="flex-1 bg-[#8f361d] text-white py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#af4d32] transition-colors cursor-pointer text-center font-bold shadow-md disabled:opacity-50"
+                      >
+                        {actionLoading ? 'SENDING...' : 'CONNECT'}
+                      </button>
+                    );
+                  }
+                })()}
+
                 <button
                   onClick={() => setSelectedMatch(null)}
                   className="flex-1 bg-[#f0eee9] text-[#56423d] py-3.5 rounded-full font-journal-label text-xs tracking-widest uppercase hover:bg-[#ffdad6] hover:text-[#ba1a1a] transition-all cursor-pointer text-center font-bold"

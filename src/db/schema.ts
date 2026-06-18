@@ -1,9 +1,11 @@
 // src/db/schema.ts
 import {
   pgTable, pgEnum, text, integer, real, boolean,
-  timestamp, jsonb, uuid, varchar, index, uniqueIndex, check
+  timestamp, jsonb, uuid, varchar, index, uniqueIndex, check,
+  customType // In case vector is not found, though we'll try vector first
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { vector } from 'drizzle-orm/pg-core';
 
 // ─── ENUMS ───────────────────────────────────────────────────────────────────
 
@@ -89,9 +91,9 @@ export const personalityProfiles = pgTable('personality_profiles', {
   // Interests array: ['hiking', 'museums', 'photography', ...]
   interests: text('interests').array(),
 
-  // Embedding vector for similarity search (stored as float array)
-  // Computed from all above fields — update whenever profile changes
-  embeddingVector: real('embedding_vector').array(),
+  // Embedding vector for similarity search (stored as pgvector)
+  // Computed from Big 5 Traits: [openness, conscientiousness, extraversion, agreeableness, neuroticism]
+  embeddingVector: vector('embedding_vector', { dimensions: 5 }),
 
   completedAt: timestamp('completed_at'),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -465,3 +467,42 @@ export const medicationEvents = pgTable('medication_events', {
   status: varchar('status', { length: 50 }).notNull().default('pending'), // pending, taken, skipped, snoozed
   timestamp: timestamp('timestamp').defaultNow(),
 });
+
+// ─── CONNECTIONS (TINDER/LINKEDIN STYLE) ──────────────────────────────────────
+
+export const connections = pgTable('connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  initiatorId: uuid('initiator_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: uuid('recipient_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).default('pending'), // 'pending', 'accepted', 'rejected'
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (t) => ({
+  pairIdx: uniqueIndex('connections_pair_idx').on(t.initiatorId, t.recipientId),
+  recipientIdx: index('connections_recipient_idx').on(t.recipientId),
+}));
+
+// ─── DIRECT CHATS (1-ON-1 INBOX) ──────────────────────────────────────────────
+
+export const directChats = pgTable('direct_chats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userAId: uuid('user_a_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userBId: uuid('user_b_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  connectionId: uuid('connection_id').references(() => connections.id, { onDelete: 'set null' }),
+  lastMessageAt: timestamp('last_message_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  pairIdx: uniqueIndex('direct_chats_pair_idx').on(t.userAId, t.userBId),
+}));
+
+export const directMessages = pgTable('direct_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  chatId: uuid('chat_id').notNull().references(() => directChats.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  isRead: boolean('is_read').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  chatIdx: index('direct_messages_chat_idx').on(t.chatId),
+  createdIdx: index('direct_messages_created_idx').on(t.createdAt),
+}));

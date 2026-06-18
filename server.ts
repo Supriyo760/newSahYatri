@@ -250,6 +250,37 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ─── DIRECT MESSAGING (INBOX) ───────────────────────────────────────────
+
+  socket.on('join_direct_chat', async ({ chatId }) => {
+    const userId = socket.data.userId;
+    const { isDirectChatParticipant } = await import('./src/lib/authz');
+    if (!chatId || !(await isDirectChatParticipant(userId, chatId))) {
+      socket.emit('error', 'Not authorized for this direct chat');
+      return;
+    }
+
+    socket.join(`direct_${chatId}`);
+    console.log(`Socket ${socket.id} joined direct chat room: direct_${chatId}`);
+  });
+
+  socket.on('typing_direct_chat', async ({ chatId, isTyping }) => {
+    const userId = socket.data.userId;
+    const { isDirectChatParticipant } = await import('./src/lib/authz');
+    if (!chatId || !(await isDirectChatParticipant(userId, chatId))) return;
+
+    socket.to(`direct_${chatId}`).emit('user_typing', { userId, isTyping });
+  });
+
+  socket.on('read_direct_chat', async ({ chatId }) => {
+    const userId = socket.data.userId;
+    const { isDirectChatParticipant } = await import('./src/lib/authz');
+    if (!chatId || !(await isDirectChatParticipant(userId, chatId))) return;
+
+    // We can broadcast that messages have been read
+    socket.to(`direct_${chatId}`).emit('messages_read', { byUserId: userId, time: new Date().toISOString() });
+  });
+
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
   });
