@@ -673,20 +673,23 @@ function ItineraryContent() {
 
               <div className="p-4">
                 {workflowTab === 'navigate' && (
-                  trip && firstDayItems.length > 0 ? (
+                  trip && trip.days.length > 0 ? (
                     <ChecklistNavigation
-                      dayNumber={trip.days[0].dayNumber}
-                      items={firstDayItems.map((item, index) => ({
-                        id: item.id,
-                        name: item.name,
-                        type: item.type,
-                        time: `${String(9 + index * 2).padStart(2, '0')}:00`,
-                        description: item.description || 'Planned group stop',
-                        isCompleted: false,
-                        estimatedDurationMinutes: item.estimatedDurationMinutes || 60,
+                      days={trip.days.map(d => ({
+                        dayNumber: d.dayNumber,
+                        items: d.items.map((item, index) => ({
+                          id: item.id,
+                          name: item.name,
+                          type: item.type,
+                          time: `${String(9 + index * 2).padStart(2, '0')}:00`,
+                          description: item.description || 'Planned group stop',
+                          isCompleted: false,
+                          estimatedDurationMinutes: item.estimatedDurationMinutes || 60,
+                        }))
                       }))}
                       onNavigate={(itemId) => {
-                        const item = firstDayItems.find(i => i.id === itemId);
+                        // find item across all days
+                        const item = trip.days.flatMap(d => d.items).find(i => i.id === itemId);
                         if (item) setSelectedItem(item);
                       }}
                     />
