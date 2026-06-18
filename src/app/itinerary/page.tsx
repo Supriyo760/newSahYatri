@@ -124,6 +124,7 @@ function ItineraryContent() {
   const groupMembers = (groupDetails?.members || []).map(member => ({
     id: member.userId,
     name: member.name,
+    avatarUrl: member.avatarUrl || null,
   }));
   const firstDayItems = trip?.days?.[0]?.items || [];
   const expenseTrackerRows = expenseRows.map(exp => ({
