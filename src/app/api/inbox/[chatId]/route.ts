@@ -5,12 +5,12 @@ import { db } from '@/db';
 import { directChats, directMessages } from '@/db/schema';
 import { eq, and, or, asc, sql } from 'drizzle-orm';
 
-export async function GET(req: Request, { params }: { params: { chatId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ chatId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
-    const { chatId } = params;
+    const { chatId } = await params;
     const userId = session.user.id;
 
     // Verify user is part of the chat
@@ -47,12 +47,12 @@ export async function GET(req: Request, { params }: { params: { chatId: string }
   }
 }
 
-export async function POST(req: Request, { params }: { params: { chatId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ chatId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
 
   try {
-    const { chatId } = params;
+    const { chatId } = await params;
     const userId = session.user.id;
     const { content } = await req.json();
 
