@@ -54,6 +54,7 @@ interface Trip {
 }
 
 interface GroupDetails {
+  createdBy: string;
   currentMembership: {
     medicalSharingConsent: boolean | null;
   };
@@ -118,6 +119,8 @@ function ItineraryContent() {
 
   const currentUserId = session?.user?.id || '';
   const currentUserName = session?.user?.name || 'Traveler';
+  // Derived: is the current user the creator of the selected group?
+  const isCreator = !!groupDetails && groupDetails.createdBy === currentUserId;
   const groupMembers = (groupDetails?.members || []).map(member => ({
     id: member.userId,
     name: member.name,
@@ -158,7 +161,12 @@ function ItineraryContent() {
       const res = await fetch(`/api/groups/${groupId}`);
       const data = await res.json();
       if (res.ok && data.data) {
-        setGroupDetails(data.data);
+        // Flatten createdBy from nested group object into the top-level GroupDetails
+        setGroupDetails({
+          createdBy: data.data.group?.createdBy ?? '',
+          currentMembership: data.data.currentMembership,
+          members: data.data.members,
+        });
       }
     } catch (err) {
       console.error('Failed to load group details:', err);
@@ -310,8 +318,8 @@ function ItineraryContent() {
             </div>
           )}
 
-          {/* State 2: Group Selected but No Itinerary Form */}
-          {!loading && !trip && selectedGroupId && !generating && (
+          {/* State 2: Group Selected but No Itinerary — CREATOR ONLY shows the form */}
+          {!loading && !trip && selectedGroupId && !generating && isCreator && (
             <form onSubmit={handleGenerate} className="bg-[#f0eee9] p-8 rounded-2xl shadow-tactile space-y-6">
               <h3 className="font-journal-headline text-2xl text-[#8f361d]">
                 Initiate AI Journey Crafting
@@ -378,6 +386,20 @@ function ItineraryContent() {
             </form>
           )}
 
+          {/* State 2b: Group Selected but No Itinerary — MEMBER sees read-only message */}
+          {!loading && !trip && selectedGroupId && !generating && !isCreator && (
+            <div className="py-24 text-center border border-dashed border-[#ddc0b9] rounded-2xl bg-[#f0eee9]/40 p-8 space-y-4">
+              <div className="text-4xl">🗺️</div>
+              <h3 className="font-journal-headline text-xl text-[#89726c] italic">Waiting for the plan...</h3>
+              <p className="text-xs text-[#89726c] max-w-sm mx-auto leading-relaxed">
+                The group creator is crafting your shared itinerary. Once they generate it, the full journey plan will appear here for you to explore.
+              </p>
+              <div className="inline-block px-4 py-2 bg-[#ddc0b9]/30 text-[#56423d] text-[10px] font-journal-label uppercase tracking-widest rounded-full border border-[#ddc0b9]/40">
+                View Only — Editing Reserved for Creator
+              </div>
+            </div>
+          )}
+
           {/* State 3: Generating loading state */}
           {generating && (
             <div className="py-24 text-center bg-[#f0eee9]/40 border border-[#ddc0b9] rounded-2xl p-8 space-y-6">
@@ -406,12 +428,21 @@ function ItineraryContent() {
                     {trip.destination}: {trip.durationDays}-Day Expedition
                   </h3>
                 </div>
-                <button
-                  onClick={() => setTrip(null)}
-                  className="sm:self-end border border-[#ddc0b9] text-[#8f361d] py-2 px-5 rounded-full font-journal-label text-[10px] tracking-widest uppercase hover:bg-[#f0eee9] transition-all shadow-sm active:scale-95 whitespace-nowrap"
-                >
-                  Change Location
-                </button>
+                {/* Only the creator can regenerate the itinerary */}
+                {isCreator && (
+                  <button
+                    onClick={() => setTrip(null)}
+                    className="sm:self-end border border-[#ddc0b9] text-[#8f361d] py-2 px-5 rounded-full font-journal-label text-[10px] tracking-widest uppercase hover:bg-[#f0eee9] transition-all shadow-sm active:scale-95 whitespace-nowrap"
+                  >
+                    Change Location
+                  </button>
+                )}
+                {!isCreator && (
+                  <div className="sm:self-end inline-flex items-center gap-1.5 px-4 py-2 bg-[#f0eee9] border border-[#ddc0b9]/40 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-[#435848]" />
+                    <span className="font-journal-label text-[10px] text-[#56423d] uppercase tracking-wider">Viewing Plan</span>
+                  </div>
+                )}
               </div>
               <div className="h-[1px] bg-gradient-to-r from-transparent via-[#89726c] to-transparent w-full my-4" />
 

@@ -25,9 +25,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = generateSchema.parse(body);
 
-    // Get group info + user profile for personalization
+    // Get group info + verify user is a member
     const group = await getGroupForMember(session.user.id, data.groupId);
     if (!group) return errorResponse('FORBIDDEN', 'Forbidden', 403);
+
+    // Only the group CREATOR can generate or modify the itinerary
+    if (group.createdBy !== session.user.id) {
+      return errorResponse('FORBIDDEN', 'Only the group creator can generate or modify the itinerary.', 403);
+    }
 
     const [profile] = await db.select().from(personalityProfiles)
       .where(eq(personalityProfiles.userId, session.user.id)).limit(1);
