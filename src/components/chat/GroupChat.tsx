@@ -127,10 +127,16 @@ export default function GroupChat({ groupId, currentUserId, groupMembers }: Grou
       )}
       
       <div className="flex-1 p-4 overflow-y-auto bg-gray-50/30 space-y-4">
-        {messages.map((msg) => {
+        {messages.map((msg, index) => {
           const isMe = msg.senderId === currentUserId;
+          const sender = groupMembers.find(m => m.id === msg.senderId);
+          const showName = !isMe && (index === 0 || messages[index - 1].senderId !== msg.senderId);
+          
           return (
             <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              {showName && sender && (
+                <span className="text-[10px] font-bold text-gray-500 mb-1 ml-1">{sender.name}</span>
+              )}
               <div className={`max-w-[75%] px-4 py-2.5 shadow-sm ${
                 isMe 
                   ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm' 
