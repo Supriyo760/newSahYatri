@@ -157,6 +157,28 @@ export default function Discover() {
     }
   };
 
+  const handleRespondRequest = async (connectionId: string, action: 'accept' | 'reject') => {
+    try {
+      const res = await fetch('/api/connections/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionId, action }),
+      });
+      if (res.ok) {
+        // Fetch connections again to update UI
+        const connRes = await fetch('/api/connections');
+        const connData = await connRes.json();
+        if (connRes.ok) {
+          setConnectionsState(connData.data);
+          setMessage(`Connection request ${action}ed.`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage('Failed to respond to request.');
+    }
+  };
+
   const handleJoinGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -390,6 +412,66 @@ export default function Discover() {
             </form>
           </div>
 
+
+          {/* Connections / Friends List Widget */}
+          <div className="bg-[#fbf9f4] border border-[#ddc0b9]/40 p-6 rounded-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[#ddc0b9]/30 pb-2">
+              <h3 className="font-journal-headline text-lg text-[#1b1c19]">
+                Your Connections
+              </h3>
+              <Link
+                href="/inbox"
+                className="text-[10px] font-bold text-white bg-[#435848] px-3 py-1.5 rounded-full hover:bg-[#2c3d30] transition-colors uppercase tracking-wider shadow-sm"
+              >
+                Open Inbox
+              </Link>
+            </div>
+            
+            {/* Pending Requests */}
+            {connectionsState.pendingReceived.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-[#8f361d] uppercase tracking-widest">Pending Requests</h4>
+                {connectionsState.pendingReceived.map((req: any) => (
+                  <div key={req.id} className="p-3 bg-white rounded-xl border border-[#ddc0b9]/30 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-[#e4e2dd] flex items-center justify-center font-bold text-[#89726c] text-xs">
+                        {req.otherUser.name?.charAt(0)}
+                      </div>
+                      <span className="font-semibold text-xs text-[#1b1c19]">{req.otherUser.name}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleRespondRequest(req.id, 'accept')} className="w-6 h-6 rounded-full bg-[#435848] text-white flex items-center justify-center hover:bg-[#2c3d30] text-[10px]">✓</button>
+                      <button onClick={() => handleRespondRequest(req.id, 'reject')} className="w-6 h-6 rounded-full bg-[#e4e2dd] text-[#89726c] flex items-center justify-center hover:bg-[#ddc0b9] text-[10px]">✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Active Friends */}
+            <div className="space-y-2 pt-2">
+              <h4 className="text-[10px] font-bold text-[#89726c] uppercase tracking-widest">Active Friends</h4>
+              {connectionsState.active.length === 0 ? (
+                <p className="text-xs text-[#89726c] italic">No active connections yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {connectionsState.active.map((conn: any) => (
+                    <div key={conn.id} className="p-2.5 bg-white rounded-xl border border-[#ddc0b9]/30 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-[#ddc0b9] flex items-center justify-center font-bold text-white text-xs">
+                          {conn.otherUser.name?.charAt(0)}
+                        </div>
+                        <span className="font-semibold text-xs text-[#1b1c19]">{conn.otherUser.name}</span>
+                      </div>
+                      <Link href="/inbox" className="text-[10px] text-[#8f361d] hover:underline font-bold">
+                        Message
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* List of Joined Groups */}
           <div className="bg-[#fbf9f4] border border-[#ddc0b9]/40 p-6 rounded-2xl space-y-4">
