@@ -129,12 +129,23 @@ export async function GET(
       if (congestionRatio >= 1.5) status = 'congested';
       else if (congestionRatio >= 1.2) status = 'moderate';
 
+      // Collect polyline points for this leg
+      const polylinePoints: string[] = [];
+      if (leg.steps) {
+        leg.steps.forEach((step: any) => {
+          if (step.polyline && step.polyline.points) {
+            polylinePoints.push(step.polyline.points);
+          }
+        });
+      }
+
       edges.push({
         from: fromId,
         to: toId,
         durationMinutes: Math.round(trafficDuration / 60),
         congestionRatio,
-        status
+        status,
+        polylines: polylinePoints
       });
     }
 

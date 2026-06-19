@@ -95,32 +95,95 @@ export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber }: Rou
     fetchRadarData();
   };
 
+// Polyline decoder utility
+function decodePolyline(encoded: string) {
+  const points = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
   // Normalize lat/lng to percentages for SVG rendering
-  const { normalizedNodes } = useMemo(() => {
-    if (!data || data.nodes.length === 0) return { normalizedNodes: [] };
+  const { normalizedNodes, nearestHospital, edgePaths } = useMemo(() => {
+    if (!data || data.nodes.length === 0) return { normalizedNodes: [], nearestHospital: null, edgePaths: [] };
     
-    // Include hospital in bounds calculation
+    // Decode edge polylines
+    const decodedEdges = data.edges.map(edge => {
+      // @ts-ignore - polylines added in route.ts
+      const paths = (edge.polylines || []).map(p => decodePolyline(p));
+      return { ...edge, paths };
+    });
+
     const allCoords = [...data.nodes];
     if (data.nearestHospital) {
       allCoords.push({ ...data.nearestHospital, id: 'hosp', type: 'hospital', isHiddenGem: false });
     }
+    
+    // Include all route points in bounds
+    decodedEdges.forEach(e => {
+      e.paths.forEach((path: any) => {
+        path.forEach((pt: any) => allCoords.push(pt as any));
+      });
+    });
 
     const minLat = Math.min(...allCoords.map(n => n.lat));
     const maxLat = Math.max(...allCoords.map(n => n.lat));
     const minLng = Math.min(...allCoords.map(n => n.lng));
     const maxLng = Math.max(...allCoords.map(n => n.lng));
 
-    const latRange = maxLat - minLat || 0.01;
-    const lngRange = maxLng - minLng || 0.01;
+    const centerLat = (minLat + maxLat) / 2;
+    const cosLat = Math.cos(centerLat * Math.PI / 180);
 
-    // Add 20% padding
-    const padding = 0.2;
+    const points = allCoords.map(c => ({
+      x: c.lng * cosLat,
+      y: c.lat
+    }));
+
+    const minX = Math.min(...points.map(p => p.x));
+    const maxX = Math.max(...points.map(p => p.x));
+    const minY = Math.min(...points.map(p => p.y));
+    const maxY = Math.max(...points.map(p => p.y));
+
+    const xRange = maxX - minX || 0.01;
+    const yRange = maxY - minY || 0.01;
+    const maxRange = Math.max(xRange, yRange);
+
+    const padding = 15;
+    const scale = (100 - padding * 2) / maxRange;
     
+    const xOffset = 50 - ((minX + maxX) / 2) * scale;
+    const yOffset = 50 - ((minY + maxY) / 2) * scale;
+
     const getNormalized = (lat: number, lng: number) => {
-      // SVG Y is inverted (top is 0)
-      const x = ((lng - minLng) / lngRange) * (1 - padding * 2) + padding;
-      const y = 1 - (((lat - minLat) / latRange) * (1 - padding * 2) + padding);
-      return { x: x * 100, y: y * 100 };
+      const x = lng * cosLat;
+      const y = lat;
+      
+      const normX = x * scale + xOffset;
+      const normY = 100 - (y * scale + yOffset);
+      return { x: normX, y: normY };
     };
 
     const normNodes = data.nodes.map(n => ({
@@ -136,10 +199,21 @@ export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber }: Rou
       };
     }
 
+    const builtEdgePaths = decodedEdges.map(e => ({
+      ...e,
+      svgPaths: e.paths.map((path: any) => {
+        const pts = path.map((pt: any) => {
+          const n = getNormalized(pt.lat, pt.lng);
+          return `${n.x},${n.y}`;
+        });
+        return pts.join(' L ');
+      })
+    }));
+
     return {
       normalizedNodes: normNodes,
       nearestHospital: normHosp,
-      viewBoxBounds: true
+      edgePaths: builtEdgePaths
     };
   }, [data]);
 
@@ -194,30 +268,37 @@ export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber }: Rou
 
             <div className="relative w-full h-full">
               {/* Edges Layer */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                {data.edges.map((edge, idx) => {
-                  const fromNode = normalizedNodes.find(n => n.id === edge.from);
-                  const toNode = normalizedNodes.find(n => n.id === edge.to);
-                  if (!fromNode || !toNode) return null;
-                  
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+                {edgePaths.map((edge, idx) => {
                   const color = getEdgeColor(edge.status);
                   
                   return (
                     <g key={`edge-${idx}`}>
-                      <line 
-                        x1={`${fromNode.x}%`} y1={`${fromNode.y}%`} 
-                        x2={`${toNode.x}%`} y2={`${toNode.y}%`} 
-                        stroke={color} strokeWidth={edge.status === 'congested' ? "3.5" : "2"} 
-                        strokeOpacity="0.4"
-                      />
-                      <path 
-                        d={`M ${fromNode.x}% ${fromNode.y}% L ${toNode.x}% ${toNode.y}%`} 
-                        fill="transparent" 
-                        stroke={color} 
-                        strokeWidth="1.5" 
-                        strokeDasharray="6" 
-                        className="animate-dash" 
-                      />
+                      {edge.svgPaths.map((svgPath: string, pIdx: number) => (
+                        <path 
+                          key={`path-${idx}-${pIdx}`}
+                          d={`M ${svgPath}`}
+                          fill="transparent" 
+                          stroke={color} 
+                          strokeWidth={edge.status === 'congested' ? "1.5" : "1"} 
+                          strokeOpacity="0.8"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      ))}
+                      {/* Optional dotted animation on top */}
+                      {edge.svgPaths.map((svgPath: string, pIdx: number) => (
+                        <path 
+                          key={`anim-${idx}-${pIdx}`}
+                          d={`M ${svgPath}`}
+                          fill="transparent" 
+                          stroke="#ffffff" 
+                          strokeWidth="0.5" 
+                          strokeOpacity="0.5"
+                          strokeDasharray="2 4" 
+                          className="animate-dash" 
+                          vectorEffect="non-scaling-stroke"
+                        />
+                      ))}
                     </g>
                   );
                 })}
