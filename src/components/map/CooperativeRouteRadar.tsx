@@ -98,7 +98,8 @@ export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber }: Rou
 // Polyline decoder utility
 function decodePolyline(encoded: string) {
   const points = [];
-  let index = 0, len = encoded.length;
+  let index = 0;
+  const len = encoded.length;
   let lat = 0, lng = 0;
 
   while (index < len) {
@@ -127,12 +128,12 @@ function decodePolyline(encoded: string) {
 }
 
   // Normalize lat/lng to percentages for SVG rendering
-  const { normalizedNodes, nearestHospital, edgePaths } = useMemo(() => {
-    if (!data || data.nodes.length === 0) return { normalizedNodes: [], nearestHospital: null, edgePaths: [] };
+  const { normalizedNodes, edgePaths } = useMemo(() => {
+    if (!data || data.nodes.length === 0) return { normalizedNodes: [], edgePaths: [] };
     
     // Decode edge polylines
     const decodedEdges = data.edges.map(edge => {
-      // @ts-ignore - polylines added in route.ts
+      // @ts-expect-error - polylines added in route.ts
       const paths = (edge.polylines || []).map(p => decodePolyline(p));
       return { ...edge, paths };
     });
@@ -151,8 +152,6 @@ function decodePolyline(encoded: string) {
 
     const minLat = Math.min(...allCoords.map(n => n.lat));
     const maxLat = Math.max(...allCoords.map(n => n.lat));
-    const minLng = Math.min(...allCoords.map(n => n.lng));
-    const maxLng = Math.max(...allCoords.map(n => n.lng));
 
     const centerLat = (minLat + maxLat) / 2;
     const cosLat = Math.cos(centerLat * Math.PI / 180);
@@ -209,6 +208,14 @@ function decodePolyline(encoded: string) {
         return pts.join(' L ');
       })
     }));
+
+    let normHosp = null;
+    if (data.nearestHospital) {
+      normHosp = {
+        ...data.nearestHospital,
+        ...getNormalized(data.nearestHospital.lat, data.nearestHospital.lng)
+      };
+    }
 
     return {
       normalizedNodes: normNodes,
@@ -321,33 +328,19 @@ function decodePolyline(encoded: string) {
               ))}
 
               {/* Nearest Hospital Node */}
-              {data.nearestHospital && (() => {
-                // Manually calculate hospital position
-                const allCoords = [...data.nodes, { ...data.nearestHospital, id: 'hosp', type: 'hospital', isHiddenGem: false }];
-                const minLat = Math.min(...allCoords.map(n => n.lat));
-                const maxLat = Math.max(...allCoords.map(n => n.lat));
-                const minLng = Math.min(...allCoords.map(n => n.lng));
-                const maxLng = Math.max(...allCoords.map(n => n.lng));
-                const latRange = maxLat - minLat || 0.01;
-                const lngRange = maxLng - minLng || 0.01;
-                const padding = 0.2;
-                const hx = ((data.nearestHospital.lng - minLng) / lngRange) * (1 - padding * 2) + padding;
-                const hy = 1 - (((data.nearestHospital.lat - minLat) / latRange) * (1 - padding * 2) + padding);
-
-                return (
+              {nearestHospital && (
                   <div 
                     className="absolute flex flex-col items-center group z-10"
-                    style={{ left: `${hx * 100}%`, top: `${hy * 100}%`, transform: 'translate(-50%, -50%)' }}
+                    style={{ left: `${nearestHospital.x}%`, top: `${nearestHospital.y}%`, transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="w-5 h-5 bg-white border-2 border-[#ba1a1a] flex items-center justify-center text-[12px] font-bold text-[#ba1a1a] shadow-lg animate-pulse rounded-sm">
                       +
                     </div>
                     <span className="absolute top-6 text-[8px] bg-black/80 text-[#ba1a1a] font-bold px-1.5 py-0.5 rounded border border-[#ba1a1a]/40 max-w-[80px] truncate text-center opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                      {data.nearestHospital.name}
+                      {nearestHospital.name}
                     </span>
                   </div>
-                );
-              })()}
+              )}
             </div>
           </div>
 
