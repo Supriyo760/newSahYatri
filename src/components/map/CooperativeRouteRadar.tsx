@@ -4,11 +4,12 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { Socket } from 'socket.io-client';
 
+import { useSocket } from '@/hooks/useSocket';
+
 interface RouteRadarProps {
   tripId: string;
   groupId: string;
   currentDayNumber: number;
-  socket: Socket | null;
 }
 
 interface Node {
@@ -40,7 +41,8 @@ interface RadarData {
   };
 }
 
-export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber, socket }: RouteRadarProps) {
+export function CooperativeRouteRadar({ tripId, groupId, currentDayNumber }: RouteRadarProps) {
+  const socket = useSocket();
   const [data, setData] = useState<RadarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -823,7 +823,6 @@ function ItineraryContent() {
                   ? trip.days.find(d => d.items.some(i => i.id === selectedItem.id))?.dayNumber || 1 
                   : trip.days[0]?.dayNumber || 1
               }
-              socket={socket}
             />
           )}
 
