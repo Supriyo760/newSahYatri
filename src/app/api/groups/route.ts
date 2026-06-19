@@ -68,6 +68,7 @@ export async function GET() {
         inviteCode: travelGroups.inviteCode,
         compatibilityScore: travelGroups.compatibilityScore,
         createdAt: travelGroups.createdAt,
+        medicalSharingConsent: groupMembers.medicalSharingConsent,
       })
       .from(groupMembers)
       .innerJoin(travelGroups, eq(groupMembers.groupId, travelGroups.id))

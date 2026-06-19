@@ -12,6 +12,7 @@ interface Group {
   status: string;
   compatibilityScore: number | null;
   inviteCode: string;
+  medicalSharingConsent?: boolean | null;
 }
 
 interface Trip {
@@ -147,8 +148,8 @@ export default function Dashboard() {
                     ['Onboarding', true],
                     ['Find or form group', groups.length > 0],
                     ['Generate itinerary', trips.length > 0],
-                    ['Share medical consent', false],
-                    ['Track budget and live location', false],
+                    ['Share medical consent', groups.some(g => g.medicalSharingConsent === true)],
+                    ['Track budget and live location', trips.some(t => t.totalBudget !== null && t.totalBudget > 0)],
                   ].map(([label, done]) => (
                     <div key={String(label)} className="flex items-center justify-between border-b border-white/10 py-2">
                       <span>{label}</span>
