@@ -27,22 +27,26 @@ export async function GET(
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
     }
 
-    // 2. Fetch the specific day and its items
+    // 2. Fetch the specific day
     const day = await db.query.itineraryDays.findFirst({
       where: and(eq(itineraryDays.tripId, tripId), eq(itineraryDays.dayNumber, dayNumber)),
-      with: {
-        items: {
-          orderBy: [asc(itineraryItems.orderIndex)],
-        }
-      }
     });
 
-    if (!day || !day.items || day.items.length === 0) {
+    if (!day) {
+      return NextResponse.json({ error: 'Day not found' }, { status: 404 });
+    }
+
+    const items = await db.select()
+      .from(itineraryItems)
+      .where(eq(itineraryItems.dayId, day.id))
+      .orderBy(asc(itineraryItems.orderIndex));
+
+    if (!items || items.length === 0) {
       return NextResponse.json({ error: 'No items found for this day' }, { status: 404 });
     }
 
     // Filter out items without coordinates
-    const locationItems = day.items.filter(item => item.lat !== null && item.lng !== null);
+    const locationItems = items.filter((item: any) => item.lat !== null && item.lng !== null);
 
     if (locationItems.length < 2) {
       return NextResponse.json({ error: 'Not enough mapped locations to generate radar' }, { status: 400 });
