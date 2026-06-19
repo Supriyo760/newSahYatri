@@ -28,19 +28,27 @@ interface Trip {
 export default function Dashboard() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [globalMedicalConsent, setGlobalMedicalConsent] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [groupsRes, tripsRes] = await Promise.all([
+        const [groupsRes, tripsRes, medicalRes] = await Promise.all([
           fetch('/api/groups'),
           fetch('/api/trips'),
+          fetch('/api/medical/profile'),
         ]);
         const groupsData = await groupsRes.json();
         const tripsData = await tripsRes.json();
         if (groupsRes.ok) setGroups(groupsData.data || []);
         if (tripsRes.ok) setTrips(tripsData.data || []);
+        if (medicalRes.ok) {
+          const medicalData = await medicalRes.json();
+          if (medicalData.data?.shareWithGroup) {
+            setGlobalMedicalConsent(true);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -128,12 +136,9 @@ export default function Dashboard() {
                       >
                         <div className="flex justify-between gap-3">
                           <strong className="text-sm text-[#1b1c19]">{group.name}</strong>
-                          <span className="text-[10px] text-[#8f361d] font-bold">
-                            {group.compatibilityScore ? `${group.compatibilityScore}%` : group.status}
-                          </span>
                         </div>
                         <p className="text-[10px] text-[#89726c] mt-1">
-                          {group.destination || 'Destination pending'} · Code {group.inviteCode}
+                          Code {group.inviteCode}
                         </p>
                       </Link>
                     ))}
@@ -148,7 +153,7 @@ export default function Dashboard() {
                     ['Onboarding', true],
                     ['Find or form group', groups.length > 0],
                     ['Generate itinerary', trips.length > 0],
-                    ['Share medical consent', groups.some(g => g.medicalSharingConsent === true)],
+                    ['Share medical consent', globalMedicalConsent || groups.some(g => g.medicalSharingConsent === true)],
                     ['Track budget and live location', trips.some(t => t.totalBudget !== null && t.totalBudget > 0)],
                   ].map(([label, done]) => (
                     <div key={String(label)} className="flex items-center justify-between border-b border-white/10 py-2">
