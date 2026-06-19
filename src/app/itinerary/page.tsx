@@ -9,7 +9,6 @@ import { useSession } from 'next-auth/react';
 import GroupChat from '@/components/chat/GroupChat';
 import MedicalSharingConsent from '@/components/medical/MedicalSharingConsent';
 import GroupMedicalOverview, { GroupMemberMedical } from '@/components/medical/GroupMedicalOverview';
-import ExpenseTracker from '@/components/trips/ExpenseTracker';
 import ChecklistNavigation from '@/components/trips/ChecklistNavigation';
 import LiveLocationMap from '@/components/map/LiveLocationMap';
 import { CooperativeRouteRadar } from '@/components/map/CooperativeRouteRadar';
@@ -85,7 +84,6 @@ function ItineraryContent() {
   const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
-  const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState('');
@@ -99,7 +97,7 @@ function ItineraryContent() {
   // Selected item details for Maps overlay simulated popup
   const [selectedItem, setSelectedItem] = useState<ItineraryItem | null>(null);
   const [activeTab, setActiveTab] = useState<'attractions' | 'food'>('attractions');
-  const [workflowTab, setWorkflowTab] = useState<'navigate' | 'chat' | 'care' | 'budget' | 'location'>('navigate');
+  const [workflowTab, setWorkflowTab] = useState<'navigate' | 'chat' | 'care' | 'location'>('navigate');
 
   // Reservation Modal State
   const [bookingItem, setBookingItem] = useState<ItineraryItem | null>(null);
@@ -128,16 +126,6 @@ function ItineraryContent() {
     avatarUrl: member.avatarUrl || null,
   }));
   const firstDayItems = trip?.days?.[0]?.items || [];
-  const expenseTrackerRows = expenseRows.map(exp => ({
-    id: exp.id,
-    description: exp.description,
-    amount: Number(exp.amount),
-    paidBy: exp.paidBy,
-    paidByName: groupMembers.find(member => member.id === exp.paidBy)?.name || 'Traveler',
-    splitType: exp.splitType || 'equal',
-    date: exp.createdAt,
-    category: exp.category || 'general',
-  }));
 
   useEffect(() => {
     async function loadGroups() {
@@ -175,18 +163,6 @@ function ItineraryContent() {
     }
   }, []);
 
-  const loadExpenses = useCallback(async (tripId: string) => {
-    try {
-      const res = await fetch(`/api/trips/${tripId}/expenses`);
-      const data = await res.json();
-      if (res.ok && data.data?.expenses) {
-        setExpenseRows(data.data.expenses);
-      }
-    } catch (err) {
-      console.error('Failed to load trip expenses:', err);
-    }
-  }, []);
-
   const loadTrip = useCallback(async (groupId: string) => {
     if (!groupId) return;
     setLoading(true);
@@ -197,7 +173,6 @@ function ItineraryContent() {
       const data = await res.json();
       if (res.ok && data.data) {
         setTrip(data.data);
-        await loadExpenses(data.data.id);
         if (data.data.destination) {
           setDestination(data.data.destination);
         }
@@ -216,7 +191,7 @@ function ItineraryContent() {
     } finally {
       setLoading(false);
     }
-  }, [loadExpenses]);
+  }, []);
 
   useEffect(() => {
     if (selectedGroupId) {
@@ -724,23 +699,6 @@ function ItineraryContent() {
                       members={groupDetails?.members || []}
                       isAuthorized={!!groupDetails?.currentMembership?.medicalSharingConsent}
                     />
-                  </div>
-                )}
-
-                {workflowTab === 'budget' && trip && currentUserId && (
-                  <ExpenseTracker
-                    key={`${trip.id}-${expenseRows.length}`}
-                    tripId={trip.id}
-                    currentUserId={currentUserId}
-                    groupMembers={groupMembers}
-                    initialExpenses={expenseTrackerRows}
-                    totalBudget={trip.totalBudget || 0}
-                  />
-                )}
-
-                {workflowTab === 'budget' && !trip && (
-                  <div className="p-6 text-center text-xs text-[#89726c] bg-[#f0eee9]/50 rounded-xl">
-                    Create the trip itinerary before tracking shared expenses.
                   </div>
                 )}
 
