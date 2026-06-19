@@ -115,7 +115,8 @@ export async function GET(req: Request) {
         ((1 - conflictProbability) * 10) // ML Conflict penalty
       );
 
-      if (aiAdjustedScore >= 60) {
+      // Show all users regardless of score for testing/visibility
+      if (aiAdjustedScore >= 0) {
         matches.push({
           user: {
             id: other.userId,
