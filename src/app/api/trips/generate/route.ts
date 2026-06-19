@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       hiddenGemMode: durationDays >= 5,
       totalBudget: data.budgetTotal,
       perPersonBudget: data.budgetTotal ? data.budgetTotal / (group.maxMembers || 4) : undefined,
+      generationPromptUsed: generated.local_food_guide_overview,
       itineraryVersion: nextVersion,
       status: 'active',
     }).returning();

@@ -21,6 +21,7 @@ export interface GeneratedItineraryDay {
 
 export interface GeneratedItinerary {
   destination: string;
+  local_food_guide_overview?: string;
   days: GeneratedItineraryDay[];
 }
 
@@ -871,7 +872,7 @@ async function generateFallbackItinerary(params: GenerationParams): Promise<Gene
     days.push({ day: d, theme, items });
   }
 
-  return { destination: dest, days };
+  return { destination: dest, local_food_guide_overview: `### The Taste of ${dest}\nA generic overview of local foods for ${dest}. As you explore, be sure to try local specialties from the recommended shops!`, days };
 }
 
 export async function generateItinerary(params: GenerationParams): Promise<GeneratedItinerary> {
@@ -901,10 +902,12 @@ Details:
 Rules:
 1. Provide a realistic day-by-day plan with 3-4 structured items per day.
 2. ${hiddenGemInstruction}
-3. Format each item with a "search_query" that can be used on Google Maps (e.g. "Humayun's Tomb, New Delhi" instead of just "Tomb").
-4. Response must be valid JSON matching the schema:
+3. Generate a 'local_food_guide_overview' as a formatted markdown string highlighting the region's famous food items, dishes, and categories. For ANY shop or restaurant you mention in this overview, you MUST ALSO include it as a 'food' type item within the 'items' array of the days, so they appear on the actual trip timeline.
+4. Format each item with a "search_query" that can be used on Google Maps (e.g. "Humayun's Tomb, New Delhi" instead of just "Tomb").
+5. Response must be valid JSON matching the schema:
 {
   "destination": "...",
+  "local_food_guide_overview": "markdown string of the famous foods and must-try restaurant recommendations here",
   "days": [
     {
       "day": 1,

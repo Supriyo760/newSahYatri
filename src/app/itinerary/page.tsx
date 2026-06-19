@@ -45,11 +45,16 @@ interface ItineraryDay {
 
 interface Trip {
   id: string;
+  groupId: string;
   destination: string;
   startDate: string;
   endDate: string;
   durationDays: number;
   totalBudget: number | null;
+  perPersonBudget: number | null;
+  currency: string | null;
+  hiddenGemMode: boolean;
+  generationPromptUsed?: string | null;
   days: ItineraryDay[];
 }
 
@@ -539,38 +544,11 @@ function ItineraryContent() {
                     </p>
                   </div>
 
-                  {(trip.destination.toLowerCase().includes('bengal') || trip.destination.toLowerCase().includes('bangalore')) && (
+                  {trip.generationPromptUsed && (
                     <div className="bg-white p-6 rounded-2xl shadow-tactile border border-[#ddc0b9]/40 space-y-4">
-                      <h5 className="font-journal-headline text-xl text-[#1b1c19]">The Taste of Bengaluru</h5>
-                      <p className="text-xs text-[#56423d] leading-relaxed">
-                        Bangalore’s famous food spans legendary South Indian breakfast items, aromatic regional non-veg dishes, and vibrant street food. The city is most celebrated for its iconic Benne (butter) Masala Dosa, flavorful Bisi Bele Bath, and Donne Biryani, which can be enjoyed at historic canteens and bustling night stalls.
-                      </p>
-                      
-                      <div className="space-y-4 pt-2">
-                        <div className="border-l-2 border-[#fdb55c] pl-4">
-                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Iconic South Indian Breakfast</h6>
-                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Benne Dosa:</strong> A crispy, golden, thick crepe generously roasted in butter, typically served with coconut chutney and potato sagu.</p>
-                          <p className="text-[10px] text-[#56423d] italic mb-2">Where to try: Central Tiffin Room (CTR) in Malleswaram or Vidyarthi Bhavan in Basavanagudi.</p>
-                          
-                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Rava Idli & Filter Coffee:</strong> A fluffy, steamed semolina and yogurt cake paired perfectly with a hot, frothy cup of traditional South Indian filter coffee.</p>
-                          <p className="text-[10px] text-[#56423d] italic">Where to try: Mavalli Tiffin Room (MTR).</p>
-                        </div>
-                        
-                        <div className="border-l-2 border-[#8f361d] pl-4">
-                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Hearty Local Meals</h6>
-                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Donne Biryani:</strong> A highly distinct, flavorful biryani cooked in a short-grain rice (jeera samba) and served in traditional leaf cups (donne), packed with robust spices.</p>
-                          <p className="text-[10px] text-[#56423d] italic mb-2">Where to try: Shivaji Military Hotel in Jayanagar or Meghana Foods.</p>
-                          
-                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Bisi Bele Bath:</strong> A quintessential Karnataka comfort food consisting of a spicy, one-pot blend of rice, lentils, and mixed vegetables, served with a dollop of ghee and crispy boondi.</p>
-                          <p className="text-[10px] text-[#56423d] italic">Where to try: Airlines Hotel.</p>
-                        </div>
-
-                        <div className="border-l-2 border-[#435848] pl-4">
-                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Street Food & Evening Snacks</h6>
-                          <p className="text-[11px] text-[#89726c] mb-1"><strong>VV Puram Food Street (Thindi Beedi):</strong> An entire street dedicated to local vegetarian street food. Famous highlights include the floating Akki Roti (spiced rice flatbread), crispy Paddu (appam), and Holige (sweet flatbread made of lentils and jaggery).</p>
-                          
-                          <p className="text-[11px] text-[#89726c] mt-2 mb-1"><strong>Shivajinagar Kebabs:</strong> Famous for its bustling Ramadan and late-night food scenes, this area is the go-to spot for tender, charcoal-grilled chicken and mutton kebabs.</p>
-                        </div>
+                      <h5 className="font-journal-headline text-xl text-[#1b1c19]">The Taste of {trip.destination}</h5>
+                      <div className="text-xs text-[#56423d] leading-relaxed whitespace-pre-wrap font-sans space-y-2">
+                        {trip.generationPromptUsed}
                       </div>
                     </div>
                   )}
