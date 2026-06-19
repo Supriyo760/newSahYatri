@@ -93,7 +93,7 @@ export const personalityProfiles = pgTable('personality_profiles', {
 
   // Embedding vector for similarity search (stored as pgvector)
   // Computed from Big 5 Traits: [openness, conscientiousness, extraversion, agreeableness, neuroticism]
-  embeddingVector: vector('embedding_vector', { dimensions: 5 }),
+  embeddingVector: vector('embedding_vector', { dimensions: 18 }),
 
   completedAt: timestamp('completed_at'),
   updatedAt: timestamp('updated_at').defaultNow(),
