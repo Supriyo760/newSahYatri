@@ -626,12 +626,11 @@ function ItineraryContent() {
                 </h3>
               </div>
 
-              <div className="grid grid-cols-5 border-b border-[#ddc0b9]/30 text-[9px] font-journal-label uppercase tracking-wider">
+              <div className="grid grid-cols-4 border-b border-[#ddc0b9]/30 text-[9px] font-journal-label uppercase tracking-wider">
                 {[
                   { id: 'navigate', label: 'Nav' },
                   { id: 'chat', label: 'Chat' },
                   { id: 'care', label: 'Care' },
-                  { id: 'budget', label: 'Money' },
                   { id: 'location', label: 'Live' },
                 ].map(tab => (
                   <button
