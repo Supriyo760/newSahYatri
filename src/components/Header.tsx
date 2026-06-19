@@ -1,16 +1,51 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import BiodataModal from '@/components/profile/BiodataModal';
 
 export default function Header() {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selfModalOpen, setSelfModalOpen] = useState(false);
+  const [selfProfileData, setSelfProfileData] = useState<any>(null);
   const { data: session } = useSession();
 
   const toggleDrawer = () => setDrawerOpen(!drawerOpen);
+
+  const handleOpenSelfProfile = async () => {
+    setSelfModalOpen(true);
+    if (!selfProfileData) {
+      try {
+        const res = await fetch('/api/users/profile');
+        const data = await res.json();
+        if (res.ok && data.data) {
+          setSelfProfileData({
+            id: session?.user?.id || '',
+            name: data.data.name,
+            avatarUrl: data.data.avatarUrl,
+            age: data.data.age,
+            gender: data.data.gender,
+            nationality: data.data.nationality,
+            travelStyle: data.data.travelStyle,
+            interests: data.data.interests || [],
+            openness: data.data.openness,
+            conscientiousness: data.data.conscientiousness,
+            extraversion: data.data.extraversion,
+            agreeableness: data.data.agreeableness,
+            neuroticism: data.data.neuroticism,
+            riskTolerance: data.data.riskTolerance,
+            budgetLevel: data.data.budgetLevel,
+            foodPreferences: data.data.foodPreferences,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch self profile', err);
+      }
+    }
+  };
 
   return (
     <>
@@ -34,13 +69,13 @@ export default function Header() {
               <span className="hidden md:inline font-journal-label text-[11px] text-[#56423d]">
                 {session.user.name || 'Explorer'}
               </span>
-              <Link href="/onboarding">
+              <button onClick={handleOpenSelfProfile} className="focus:outline-none">
                 <img
                   alt="Profile"
                   className="w-8 h-8 rounded-full object-cover border border-[#89726c] hover:opacity-80 transition-opacity"
                   src={session.user.image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCELUwqFW8Qdkh2CfTBkR3Oxcv-Arc2HtCNQsPYI0DNAF7nE_lrIpByFVZHnHdB3BapO-Fu6X3n1X6DE6FgdF9nO8lyjtmwXr85-X9yCDkDMgEir4hBW9WvPSk7ApRh004HM3nghn66MReNj6AEmt4SJTLV67HnKMONXxgaafAFp0M9zPc65lui_Yptfp924FqWLm4elACNLhZvy4AbuUWRBXAKpIC3EqSGZupIiwh-8XOHt3sZMBLyLOWdWqBlDCLqBNAo0yelsxk'}
                 />
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-4">
@@ -189,6 +224,14 @@ export default function Header() {
           </nav>
         </div>
       </aside>
+
+      {selfModalOpen && selfProfileData && (
+        <BiodataModal
+          user={selfProfileData}
+          isSelf={true}
+          onClose={() => setSelfModalOpen(false)}
+        />
+      )}
     </>
   );
 }
