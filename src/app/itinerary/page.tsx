@@ -104,23 +104,6 @@ function ItineraryContent() {
   const [activeTab, setActiveTab] = useState<'attractions' | 'food'>('attractions');
   const [workflowTab, setWorkflowTab] = useState<'navigate' | 'chat' | 'care' | 'location'>('navigate');
 
-  // Reservation Modal State
-  const [bookingItem, setBookingItem] = useState<ItineraryItem | null>(null);
-  const [bookingSuccess, setBookingSuccess] = useState(false);
-  const [bookingName, setBookingName] = useState('');
-  const [bookingGuests, setBookingGuests] = useState(4);
-  const [bookingTime, setBookingTime] = useState('19:00');
-
-  const handleOpenBooking = (item: ItineraryItem) => {
-    setBookingItem(item);
-    setBookingSuccess(false);
-  };
-
-  const handleConfirmBooking = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBookingSuccess(true);
-  };
-
   const currentUserId = session?.user?.id || '';
   const currentUserName = session?.user?.name || 'Traveler';
   // Derived: is the current user the creator of the selected group?
@@ -609,12 +592,6 @@ function ItineraryContent() {
                             >
                               Show Shop Map Pin
                             </a>
-                            <button
-                              onClick={() => handleOpenBooking(item)}
-                              className="w-full bg-[#fdb55c] text-[#1b1c19] py-2 rounded-xl font-journal-label text-[9px] uppercase tracking-widest hover:bg-[#8f361d] hover:text-white transition-colors font-bold cursor-pointer active:scale-95"
-                            >
-                              Reserve a Table (Get 5% Cashback)
-                            </button>
                           </div>
                         </div>
                       ));
@@ -798,91 +775,6 @@ function ItineraryContent() {
 
         </div>
       </main>
-
-      {/* Table Booking Modal */}
-      {bookingItem && (
-        <div className="fixed inset-0 bg-[#1b1c19]/60 backdrop-blur-md z-[100] flex items-center justify-center p-6 transition-all animate-fade-in">
-          <div className="bg-[#fbf9f4] border border-[#ddc0b9] p-6 rounded-2xl max-w-sm w-full space-y-5 shadow-2xl relative text-left">
-            <div className="flex justify-between items-center border-b border-[#ddc0b9]/40 pb-2">
-              <span className="font-journal-label text-[10px] text-[#8f361d] tracking-widest uppercase">
-                TABLE RESERVATION
-              </span>
-              <button onClick={() => setBookingItem(null)} className="text-xs text-[#89726c] hover:underline font-bold">
-                ✕
-              </button>
-            </div>
-
-            {!bookingSuccess ? (
-              <form onSubmit={handleConfirmBooking} className="space-y-4">
-                <div className="space-y-1">
-                  <h4 className="font-journal-headline text-2xl text-[#8f361d] italic">{bookingItem.name}</h4>
-                  <p className="text-[10px] text-[#89726c]">Referral Code: **SAHYATRI-RESTAURANT-5**</p>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="font-journal-label text-[9px] text-[#89726c] block mb-1">RESERVEE NAME</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Supriyo Chowdhury"
-                      value={bookingName}
-                      onChange={e => setBookingName(e.target.value)}
-                      className="w-full bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="font-journal-label text-[9px] text-[#89726c] block mb-1">NUMBER OF GUESTS</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={bookingGuests}
-                        onChange={e => setBookingGuests(Number(e.target.value))}
-                        className="w-full bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="font-journal-label text-[9px] text-[#89726c] block mb-1">RESERVATION TIME</label>
-                      <input
-                        type="time"
-                        value={bookingTime}
-                        onChange={e => setBookingTime(e.target.value)}
-                        className="w-full bg-white border border-[#ddc0b9]/40 rounded-lg p-2 text-xs font-mono"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-[#8f361d] text-white py-2.5 rounded-full font-journal-label text-[10px] uppercase tracking-widest hover:bg-[#af4d32] transition-colors cursor-pointer active:scale-95 font-bold text-center"
-                >
-                  CONFIRM RESERVATION (5% CASHBACK)
-                </button>
-              </form>
-            ) : (
-              <div className="text-center space-y-4 py-4">
-                <span className="text-4xl block animate-bounce">🍽️</span>
-                <h4 className="font-journal-headline text-2xl text-[#435848]">Table Reserved Successfully!</h4>
-                <p className="text-xs text-[#89726c] leading-relaxed">
-                  Your table at **{bookingItem.name}** is reserved for **{bookingGuests} guests** at **{bookingTime}**. Your 5% cashback has been queued under referred commission payouts.
-                </p>
-                <button
-                  onClick={() => setBookingItem(null)}
-                  className="w-full bg-[#435848] text-white py-2.5 rounded-full font-journal-label text-[10px] uppercase tracking-widest hover:opacity-90 transition-opacity cursor-pointer active:scale-95 font-bold"
-                >
-                  BACK TO ITINERARY
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <BottomNavBar />
     </div>
