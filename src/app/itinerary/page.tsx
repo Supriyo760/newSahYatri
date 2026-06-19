@@ -532,7 +532,7 @@ function ItineraryContent() {
 
                                 {item.estimatedCostPerPerson !== null && (
                                   <div className="text-[10px] text-[#89726c] border-t border-[#ddc0b9]/20 pt-2 flex justify-between items-center">
-                                    <span>Estimated: <strong>${item.estimatedCostPerPerson}</strong>/person</span>
+                                    <span>Estimated: <strong>₹{item.estimatedCostPerPerson}</strong>/person</span>
                                     {item.estimatedDurationMinutes && (
                                       <span>Duration: {item.estimatedDurationMinutes}m</span>
                                     )}
@@ -609,7 +609,7 @@ function ItineraryContent() {
                             <div className="text-xs text-[#89726c]">
                               <p><strong>Recommended Shop/Zone:</strong> {item.locationName || 'Local street stalls'}</p>
                               {item.estimatedCostPerPerson !== null && (
-                                <p className="mt-1"><strong>Avg Cost:</strong> ${item.estimatedCostPerPerson}/person</p>
+                                <p className="mt-1"><strong>Avg Cost:</strong> ₹{item.estimatedCostPerPerson}/person</p>
                               )}
                             </div>
                             <a
