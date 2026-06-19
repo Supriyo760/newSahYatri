@@ -55,22 +55,31 @@ export async function POST(req: NextRequest) {
 
     // Get consenting group members' condition categories
     const members = groupId ? await db
-      .select({ userId: groupMembers.userId, medicalSharingConsent: groupMembers.medicalSharingConsent })
+      .select({ userId: groupMembers.userId })
       .from(groupMembers)
       .where(eq(groupMembers.groupId, groupId)) : [];
 
     // Gather relevant first-aid protocols for this group
     const protocols: string[][] = [];
     for (const member of members) {
-      if (!member.medicalSharingConsent) continue;
       const [profile] = await db.select()
         .from(medicalProfiles)
         .where(eq(medicalProfiles.userId, member.userId))
         .limit(1);
 
-      if (!profile?.conditionCategories) continue;
+      if (!profile?.shareWithGroup || !profile?.conditionCategories) continue;
+      
       for (const cat of profile.conditionCategories) {
-        const protocol = FIRST_AID_PROTOCOLS[cat];
+        const catLower = cat.toLowerCase();
+        let protocolKey: string | null = null;
+        
+        if (catLower.includes('diabet')) protocolKey = 'diabetes';
+        else if (catLower.includes('asthm') || catLower.includes('astham')) protocolKey = 'asthma';
+        else if (catLower.includes('epilep') || catLower.includes('seiz')) protocolKey = 'epilepsy';
+        else if (catLower.includes('nut') || catLower.includes('peanut')) protocolKey = 'severe-nut-allergy';
+        else protocolKey = catLower;
+
+        const protocol = FIRST_AID_PROTOCOLS[protocolKey];
         if (protocol && !protocols.includes(protocol)) protocols.push(protocol);
       }
     }
