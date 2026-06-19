@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -109,8 +109,8 @@ export default function RouteMap({ nodes, edges, nearestHospital }: RouteMapProp
     const isHidden = node.isHiddenGem;
     
     // Using exactly the same styling as the previous SVG radar node
-    let bgClass = isHidden ? 'bg-[#ba1a1a] text-white animate-pulse' : isFirst ? 'bg-[#5cba74] text-white' : 'bg-[#fdb55c] text-[#1b1c19]';
-    let label = isHidden ? 'HG' : isFirst ? '1' : String(index + 1);
+    const bgClass = isHidden ? 'bg-[#ba1a1a] text-white animate-pulse' : isFirst ? 'bg-[#5cba74] text-white' : 'bg-[#fdb55c] text-[#1b1c19]';
+    const label = isHidden ? 'HG' : isFirst ? '1' : String(index + 1);
 
     const htmlString = `
       <div class="relative flex flex-col items-center group z-10 w-5 h-5" style="transform: translate(-10px, -10px);">
