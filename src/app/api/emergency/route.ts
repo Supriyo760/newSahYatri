@@ -53,21 +53,31 @@ export async function POST(req: NextRequest) {
       findNearbyMedicalFacilities(lat, lng, 'clinic', 5000),
     ]);
 
-    // Get consenting group members' condition categories
-    const members = groupId ? await db
-      .select({ userId: groupMembers.userId })
-      .from(groupMembers)
-      .where(eq(groupMembers.groupId, groupId)) : [];
+    // Always process the user triggering the SOS, plus any group members
+    const membersToProcess = new Set<string>();
+    membersToProcess.add(session.user.id);
+    
+    if (groupId) {
+      const groupMems = await db
+        .select({ userId: groupMembers.userId })
+        .from(groupMembers)
+        .where(eq(groupMembers.groupId, groupId));
+      for (const m of groupMems) membersToProcess.add(m.userId);
+    }
 
     // Gather relevant first-aid protocols for this group
     const protocols: string[][] = [];
-    for (const member of members) {
+    for (const userId of membersToProcess) {
       const [profile] = await db.select()
         .from(medicalProfiles)
-        .where(eq(medicalProfiles.userId, member.userId))
+        .where(eq(medicalProfiles.userId, userId))
         .limit(1);
 
-      if (!profile?.shareWithGroup || !profile?.conditionCategories) continue;
+      if (!profile?.conditionCategories) continue;
+      
+      // If it's another user, respect their sharing consent
+      if (userId !== session.user.id && !profile.shareWithGroup) continue;
+
       
       for (const cat of profile.conditionCategories) {
         const catLower = cat.toLowerCase();
