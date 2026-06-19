@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { DollarSign, PieChart, Plus, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { IndianRupee, PieChart, Plus, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -126,12 +126,12 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Total Spent</p>
-            <p className="text-3xl font-light tracking-tight text-white">${totalSpent.toFixed(2)}</p>
+            <p className="text-3xl font-light tracking-tight text-white">₹{totalSpent.toFixed(2)}</p>
           </div>
           
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 relative overflow-hidden">
             <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Total Budget</p>
-            <p className="text-3xl font-light tracking-tight text-white">${totalBudget.toFixed(2)}</p>
+            <p className="text-3xl font-light tracking-tight text-white">₹{totalBudget.toFixed(2)}</p>
             
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-700">
               <div 
@@ -211,7 +211,7 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
                     {member.id === currentUserId ? 'You' : member.name}
                   </span>
                   <span className={`text-sm font-bold ${isOwed ? 'text-emerald-600' : owes ? 'text-rose-600' : 'text-gray-400'}`}>
-                    {isOwed ? `gets $${bal.toFixed(2)}` : owes ? `owes $${Math.abs(bal).toFixed(2)}` : 'Settled up'}
+                    {isOwed ? `gets ₹${bal.toFixed(2)}` : owes ? `owes ₹${Math.abs(bal).toFixed(2)}` : 'Settled up'}
                   </span>
                 </div>
               );
@@ -229,7 +229,7 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
           
           {expenses.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
-              <DollarSign size={32} className="mx-auto mb-2 text-gray-300" />
+              <IndianRupee size={32} className="mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No expenses added yet.</p>
             </div>
           ) : (
@@ -238,7 +238,7 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
                 <div key={exp.id} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                      <DollarSign size={20} />
+                      <IndianRupee size={20} />
                     </div>
                     <div>
                       <p className="font-medium text-gray-900 text-sm">{exp.description}</p>
@@ -248,7 +248,7 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-gray-900">${exp.amount.toFixed(2)}</p>
+                    <p className="font-bold text-gray-900">₹{exp.amount.toFixed(2)}</p>
                     <p className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{exp.category}</p>
                   </div>
                 </div>

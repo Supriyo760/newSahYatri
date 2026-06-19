@@ -319,7 +319,7 @@ function ItineraryContent() {
                 </div>
 
                 <div>
-                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BUDGET LIMIT ($)</label>
+                  <label className="font-journal-label text-[10px] text-[#89726c] block mb-2">BUDGET LIMIT (₹)</label>
                   <input
                     type="number"
                     value={budgetTotal}
