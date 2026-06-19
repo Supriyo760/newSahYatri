@@ -46,6 +46,38 @@ const getEdgeColor = (status: Edge['status']) => {
   }
 };
 
+// Polyline decoder utility
+function decodePolyline(encoded: string) {
+  const points = [];
+  let index = 0;
+  const len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
 // Component to handle auto-fitting bounds
 function FitBounds({ nodes, hospital }: { nodes: Node[], hospital: any }) {
   const map = useMap();
@@ -129,14 +161,18 @@ export default function RouteMap({ nodes, edges, nearestHospital }: RouteMapProp
 
       {/* Render Edges (Polylines) */}
       {edges.map((edge, idx) => {
-        if (!edge.paths) return null;
+        // Decode polylines on the fly
+        // @ts-expect-error - polylines is added from route.ts
+        const edgePaths = (edge.polylines || []).map((p: string) => decodePolyline(p));
+        if (edgePaths.length === 0) return null;
+
         const color = getEdgeColor(edge.status);
         const weight = edge.status === 'congested' ? 5 : 3;
         
-        return edge.paths.map((pathSegment, pIdx) => (
+        return edgePaths.map((pathSegment: any, pIdx: number) => (
           <Polyline 
-            key={\`edge-\${idx}-\${pIdx}\`}
-            positions={pathSegment.map(pt => [pt.lat, pt.lng])}
+            key={`edge-${idx}-${pIdx}`}
+            positions={pathSegment.map((pt: any) => [pt.lat, pt.lng])}
             pathOptions={{ color, weight, opacity: 0.8 }}
           />
         ));
