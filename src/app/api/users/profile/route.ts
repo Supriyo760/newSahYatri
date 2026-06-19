@@ -71,7 +71,9 @@ export async function POST(req: NextRequest) {
     if (err instanceof z.ZodError) {
       return errorResponse('VALIDATION_ERROR', 'Validation failed', 400, err.issues);
     }
-    return errorResponse('INTERNAL_ERROR', 'Profile update failed', 500);
+    console.error('[PROFILE UPDATE ERROR]', err instanceof Error ? err.message : String(err), err);
+    const message = err instanceof Error ? err.message : 'Profile update failed';
+    return errorResponse('INTERNAL_ERROR', message, 500);
   }
 }
 
