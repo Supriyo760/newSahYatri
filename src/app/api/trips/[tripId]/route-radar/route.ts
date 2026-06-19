@@ -45,16 +45,41 @@ export async function GET(
       return NextResponse.json({ error: 'No items found for this day' }, { status: 404 });
     }
 
-    // Filter out items without coordinates
+    const apiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY;
+    if (!apiKey || apiKey === 'AIzaSyPlaceholder') {
+      return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 501 });
+    }
+
+    // Auto-fix any items missing coordinates using Google Geocoding API
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.lat === null || item.lng === null) {
+        try {
+          // Append trip destination or generic context if needed, but the name usually suffices for Places API
+          const geoUrl = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(item.locationName || item.name)}&inputtype=textquery&fields=geometry&key=${apiKey}`;
+          const geoRes = await fetch(geoUrl);
+          const geoData = await geoRes.json();
+          if (geoData.status === 'OK' && geoData.candidates && geoData.candidates.length > 0) {
+            const loc = geoData.candidates[0].geometry.location;
+            item.lat = loc.lat;
+            item.lng = loc.lng;
+            
+            // Save it back to the database to fix it permanently
+            await db.update(itineraryItems)
+              .set({ lat: loc.lat, lng: loc.lng })
+              .where(eq(itineraryItems.id, item.id));
+          }
+        } catch (e) {
+          console.error('Failed to auto-geocode item:', item.name);
+        }
+      }
+    }
+
+    // Filter out items that still don't have coordinates (if geocoding failed)
     const locationItems = items.filter((item: any) => item.lat !== null && item.lng !== null);
 
     if (locationItems.length < 2) {
       return NextResponse.json({ error: 'Not enough mapped locations to generate radar' }, { status: 400 });
-    }
-
-    const apiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY;
-    if (!apiKey || apiKey === 'AIzaSyPlaceholder') {
-      return NextResponse.json({ error: 'Google Maps API key not configured' }, { status: 501 });
     }
 
     // 3. Prepare parameters for Google Directions API
