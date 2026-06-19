@@ -40,6 +40,13 @@ interface ExpenseRow {
   category: string | null;
 }
 
+interface ExpenseSplitRow {
+  id: string;
+  expenseId: string;
+  userId: string;
+  amountOwedMinorUnits: number;
+}
+
 function BudgetContent() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -50,6 +57,7 @@ function BudgetContent() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([]);
+  const [expenseSplits, setExpenseSplits] = useState<ExpenseSplitRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const currentUserId = session?.user?.id || '';
@@ -68,6 +76,13 @@ function BudgetContent() {
     splitType: exp.splitType || 'equal',
     date: exp.createdAt,
     category: exp.category || 'general',
+  }));
+
+  const expenseTrackerSplits = expenseSplits.map(s => ({
+    id: s.id,
+    expenseId: s.expenseId,
+    userId: s.userId,
+    amount: s.amountOwedMinorUnits / 100,
   }));
 
   useEffect(() => {
@@ -107,8 +122,9 @@ function BudgetContent() {
     try {
       const res = await fetch(`/api/trips/${tripId}/expenses`);
       const data = await res.json();
-      if (res.ok && data.data?.expenses) {
-        setExpenseRows(data.data.expenses);
+      if (res.ok && data.data) {
+        setExpenseRows(data.data.expenses || []);
+        setExpenseSplits(data.data.splits || []);
       }
     } catch (err) {
       console.error('Failed to load trip expenses:', err);
@@ -177,6 +193,7 @@ function BudgetContent() {
               currentUserId={currentUserId}
               groupMembers={groupMembers}
               initialExpenses={expenseTrackerRows}
+              initialSplits={expenseTrackerSplits}
               totalBudget={trip.totalBudget || 0}
             />
           ) : (
