@@ -5,10 +5,10 @@ import { and, asc, eq } from 'drizzle-orm';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
   try {
-    const tripId = params.tripId;
+    const tripId = (await params).tripId;
     const { searchParams } = new URL(req.url);
     const dayNumberParam = searchParams.get('dayNumber');
     
