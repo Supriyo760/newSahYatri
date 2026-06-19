@@ -41,11 +41,7 @@ export default function Safety() {
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Medication Tracker State
-  const [medications, setMedications] = useState([
-    { id: '1', name: 'Metformin', dosage: '500mg', time: '08:00 AM', taken: false },
-    { id: '2', name: 'Albuterol Inhaler', dosage: '2 puffs', time: '12:00 PM', taken: true },
-    { id: '3', name: 'Atorvastatin', dosage: '10mg', time: '08:00 PM', taken: false }
-  ]);
+  const [medications, setMedications] = useState<any[]>([]);
   const [newMedName, setNewMedName] = useState('');
   const [newMedDosage, setNewMedDosage] = useState('');
   const [newMedTime, setNewMedTime] = useState('08:00');
@@ -296,25 +292,25 @@ export default function Safety() {
                   <div>
                     <span className="text-[9px] text-[#89726c] uppercase block">Blood Type</span>
                     <span className="font-journal-headline text-3xl text-[#ba1a1a] font-bold">
-                      {medicalProfile.bloodType}
+                      {medicalProfile.bloodType || 'N/A'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[9px] text-[#89726c] uppercase block">Emergency Contact</span>
                     <span className="text-xs font-semibold block text-[#1b1c19]">
-                      {medicalProfile.emergencyContacts?.[0]?.name || 'Liam Chen'}
+                      {medicalProfile.emergencyContacts?.[0]?.name || 'Not provided'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[9px] text-[#89726c] uppercase block">Relationship</span>
                     <span className="text-xs block text-[#89726c]">
-                      {medicalProfile.emergencyContacts?.[0]?.relationship || 'Spouse'}
+                      {medicalProfile.emergencyContacts?.[0]?.relationship || '-'}
                     </span>
                   </div>
                   <div>
                     <span className="text-[9px] text-[#89726c] uppercase block">Contact Phone</span>
                     <span className="text-xs block font-semibold text-[#8f361d]">
-                      {medicalProfile.emergencyContacts?.[0]?.phone || '+91 9988223311'}
+                      {medicalProfile.emergencyContacts?.[0]?.phone || 'Not provided'}
                     </span>
                   </div>
                 </div>
