@@ -55,6 +55,12 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
   const [watchId, setWatchId] = useState<number | null>(null);
   const [focusedUserId, setFocusedUserId] = useState<string | null>(null);
 
+  // Keep a ref to the latest socket to avoid stale closures in watchPosition
+  const socketRef = useRef(socket);
+  useEffect(() => {
+    socketRef.current = socket;
+  }, [socket]);
+
   // Listen for socket location updates from OTHER members
   useEffect(() => {
     if (!socket) return;
@@ -71,7 +77,7 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
   }, [socket]);
 
   // Update MY OWN location in the memberLocations map as well (so it shows on the list)
-  const updateMyLocation = useCallback((lat: number, lng: number, isFirst: boolean) => {
+  const updateMyLocation = useCallback((lat: number, lng: number) => {
     setMemberLocations(prev => ({
       ...prev,
       [currentUserId]: {
@@ -83,16 +89,15 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
       }
     }));
 
-    if (socket) {
-      socket.emit('update_location', {
+    if (socketRef.current) {
+      socketRef.current.emit('update_location', {
         groupId,
         name: currentUserName,
         lat,
         lng,
-        startSharing: isFirst, // ← triggers the 2-hour session on the server
       });
     }
-  }, [socket, groupId, currentUserId, currentUserName]);
+  }, [groupId, currentUserId, currentUserName]);
 
   const toggleLocationSharing = useCallback(() => {
     if (isSharing && watchId !== null) {
@@ -107,15 +112,13 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
       });
     } else {
       if ('geolocation' in navigator) {
-        let firstCall = true;
         setIsSharing(true);
 
         const id = navigator.geolocation.watchPosition(
           (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            updateMyLocation(lat, lng, firstCall);
-            firstCall = false;
+            updateMyLocation(lat, lng);
           },
           (error) => {
             console.error('Geolocation error:', error);

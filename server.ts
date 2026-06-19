@@ -50,7 +50,12 @@ const httpServer = createServer(async (req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      process.env.NEXTAUTH_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      'https://sahyatri-web.onrender.com'
+    ].filter(Boolean) as string[],
     methods: ['GET', 'POST'],
   },
 });
@@ -70,7 +75,7 @@ io.use((socket, next) => {
   }
 });
 
-const activeLocationSessions = new Map<string, number>();
+// Active location sessions map removed to eliminate race conditions and memory leaks
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id, 'User:', socket.data.userId);
@@ -121,23 +126,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('update_location', async (data) => {
-    const { groupId, lat, lng, name, startSharing } = data;
+    const { groupId, lat, lng, name } = data;
     const userId = socket.data.userId;
-    
-    const sessionKey = `${groupId}_${userId}`;
-    const now = Date.now();
-
-    if (startSharing) {
-      // Start a 2-hour location sharing session
-      activeLocationSessions.set(sessionKey, now + 2 * 60 * 60 * 1000);
-    }
-
-    const expiryTime = activeLocationSessions.get(sessionKey);
-    
-    if (!expiryTime || now > expiryTime) {
-      socket.emit('location_session_expired', { message: 'Your location sharing session has expired. Please restart.' });
-      return;
-    }
 
     if (!groupId || !(await isGroupMember(userId, groupId))) {
       socket.emit('error', 'Not authorized to update this location');
@@ -298,16 +288,7 @@ io.on('connection', (socket) => {
 });
 
 // Integration of Background Work
-const MINUTE_MS = 60 * 1000;
-setInterval(() => {
-  // Cleanup expired location sessions
-  const now = Date.now();
-  for (const [key, expiryTime] of activeLocationSessions.entries()) {
-    if (now > expiryTime) {
-      activeLocationSessions.delete(key);
-    }
-  }
-}, MINUTE_MS);
+// (Location sessions cleanup removed)
 
 // Bind to port immediately to satisfy Render health checks
 httpServer.listen(port, () => {
