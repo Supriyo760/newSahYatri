@@ -177,7 +177,7 @@ function BudgetContent() {
             >
               <option value="" disabled>Select a group</option>
               {groups.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+                <option key={g.id} value={g.id}>{g.name.replace(/\s*\(.*?\)\s*/g, '')}</option>
               ))}
             </select>
           </div>

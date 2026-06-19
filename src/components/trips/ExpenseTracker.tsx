@@ -438,7 +438,7 @@ export default function ExpenseTracker({ tripId, currentUserId, groupMembers, in
                     </div>
                     <button 
                       onClick={() => handleDeleteExpense(exp.id)}
-                      className="text-gray-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 p-1"
+                      className="text-gray-400 hover:text-rose-500 transition-colors p-1"
                       title="Delete expense"
                     >
                       <Trash2 size={16} />
