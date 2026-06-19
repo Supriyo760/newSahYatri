@@ -194,7 +194,7 @@ export default function LiveLocationMap({ groupId, currentUserId, currentUserNam
           <div className="flex flex-wrap gap-2">
             {allLocations.length === 0 && (
               <span className="text-[10px] text-gray-400 italic">
-                Press "Share Location" to broadcast your position to the group in real-time.
+                Press &quot;Share Location&quot; to broadcast your position to the group in real-time.
               </span>
             )}
             {allLocations.map((loc) => {
