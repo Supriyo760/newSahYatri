@@ -178,6 +178,16 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('refresh_route_radar', async (data) => {
+    const { groupId, tripId } = data;
+    const userId = socket.data.userId;
+    if (!groupId || !(await isGroupMember(userId, groupId))) {
+      return;
+    }
+    // Broadcast to everyone in group that route radar needs a refresh
+    io.to(`group_${groupId}`).emit('route_refreshed', { tripId });
+  });
+
   // ─── PRE-MATCH CHAT (ANONYMOUS) ─────────────────────────────────────────
 
   socket.on('join_pre_match', async ({ chatId }) => {

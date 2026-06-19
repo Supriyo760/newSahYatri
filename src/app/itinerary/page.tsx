@@ -12,6 +12,7 @@ import GroupMedicalOverview, { GroupMemberMedical } from '@/components/medical/G
 import ExpenseTracker from '@/components/trips/ExpenseTracker';
 import ChecklistNavigation from '@/components/trips/ChecklistNavigation';
 import LiveLocationMap from '@/components/map/LiveLocationMap';
+import { CooperativeRouteRadar } from '@/components/map/CooperativeRouteRadar';
 
 interface Group {
   id: string;
@@ -812,101 +813,15 @@ function ItineraryContent() {
             </div>
           )}
 
-          {/* Proximity Map radar overlay card */}
-          <div className="bg-[#f0eee9] p-6 rounded-2xl border border-[#ddc0b9]/40 space-y-4">
-            <h3 className="font-journal-headline text-xl text-[#8f361d]">
-              Cooperative Route Radar
-            </h3>
-            <p className="text-xs text-[#89726c]">
-              Interactive satellite route overlay. Nearby medical emergency hubs are monitored in real-time.
-            </p>
-            {trip ? (
-              <div className="rounded-xl overflow-hidden border border-[#ddc0b9] shadow-inner relative bg-[#1b1c19] text-[#fbf9f4] p-5 h-[320px] flex flex-col justify-between">
-                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full flex items-center gap-1.5 z-10 border border-[#ddc0b9]/20 text-[8px] font-bold text-[#fdb55c]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#fdb55c] animate-ping" />
-                  DIJKSTRA TRAFFIC LAYER ACTIVE
-                </div>
-
-                <div className="flex-1 flex flex-col items-center justify-center relative border border-[#ddc0b9]/10 rounded-lg p-2 bg-black/40 overflow-hidden">
-                  {/* Grid system lines */}
-                  <div className="absolute inset-0 bg-[radial-gradient(circle,#2c2d2a_1px,transparent_1px)] bg-[size:16px_16px] opacity-40" />
-
-                  {/* Draw Nodes & Edges dynamically representing Itinerary Dijkstra paths */}
-                  <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    {/* Glowing path lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                      {/* Edge A -> B (Green - Clear) */}
-                      <line x1="20%" y1="30%" x2="50%" y2="55%" stroke="#435848" strokeWidth="3" className="drop-shadow-[0_0_8px_#435848] animate-pulse" />
-                      <path d="M 20% 30% L 50% 55%" fill="transparent" stroke="#5cba74" strokeWidth="1.5" strokeDasharray="6" className="animate-dash" />
-
-                      {/* Edge B -> C (Red - High Congestion) */}
-                      <line x1="50%" y1="55%" x2="80%" y2="40%" stroke="#ba1a1a" strokeWidth="3.5" className="drop-shadow-[0_0_8px_#ba1a1a]" />
-                      <circle cx="65%" cy="47.5%" r="4" fill="#ba1a1a" className="animate-ping" />
-
-                      {/* Edge C -> D (Orange - Moderate Congestion) */}
-                      <line x1="80%" y1="40%" x2="50%" y2="80%" stroke="#e69c24" strokeWidth="2.5" className="drop-shadow-[0_0_6px_#e69c24]" />
-                    </svg>
-
-                    {/* Nodes represent Itinerary Landmarks */}
-                    {/* Node 1: Start (Hotel/Hub) */}
-                    <div className="absolute top-[20%] left-[12%] flex flex-col items-center cursor-pointer group z-10">
-                      <div className="w-5 h-5 rounded-full bg-[#5cba74] border-2 border-white flex items-center justify-center text-[8px] font-bold text-white shadow-lg drop-shadow-[0_0_6px_#5cba74]">H</div>
-                      <span className="text-[8px] bg-black/80 px-1.5 py-0.5 rounded border border-[#ddc0b9]/20 mt-1 max-w-[80px] truncate text-center">Hub / Hotel</span>
-                    </div>
-
-                    {/* Node 2: Attraction 1 */}
-                    <div className="absolute top-[48%] left-[43%] flex flex-col items-center cursor-pointer group z-10">
-                      <div className="w-5 h-5 rounded-full bg-[#fdb55c] border-2 border-white flex items-center justify-center text-[8px] font-bold text-[#1b1c19] shadow-lg drop-shadow-[0_0_6px_#fdb55c]">A1</div>
-                      <span className="text-[8px] bg-black/80 px-1.5 py-0.5 rounded border border-[#ddc0b9]/20 mt-1 max-w-[80px] truncate text-center">
-                        {trip.days[0]?.items[0]?.name || 'Attraction 1'}
-                      </span>
-                    </div>
-
-                    {/* Node 3: Food / Cafe */}
-                    <div className="absolute top-[32%] left-[73%] flex flex-col items-center cursor-pointer group z-10">
-                      <div className="w-5 h-5 rounded-full bg-[#e69c24] border-2 border-white flex items-center justify-center text-[8px] font-bold text-[#1b1c19] shadow-lg drop-shadow-[0_0_6px_#e69c24]">F</div>
-                      <span className="text-[8px] bg-black/80 px-1.5 py-0.5 rounded border border-[#ddc0b9]/20 mt-1 max-w-[80px] truncate text-center">
-                        {trip.days[0]?.items.find(i => i.type === 'food')?.name || 'Local Cafe'}
-                      </span>
-                    </div>
-
-                    {/* Node 4: Hidden Gem */}
-                    <div className="absolute top-[72%] left-[45%] flex flex-col items-center cursor-pointer group z-10">
-                      <div className="w-5 h-5 rounded-full bg-[#ba1a1a] border-2 border-white flex items-center justify-center text-[8px] font-bold text-white shadow-lg drop-shadow-[0_0_6px_#ba1a1a] animate-pulse">HG</div>
-                      <span className="text-[8px] bg-black/80 px-1.5 py-0.5 rounded border border-[#ddc0b9]/20 mt-1 max-w-[80px] truncate text-center">
-                        {trip.days[0]?.items.find(i => i.isHiddenGem)?.name || 'Hidden Gem'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dijkstra analytics */}
-                <div className="text-[10px] text-[#89726c] flex justify-between items-center border-t border-[#ddc0b9]/10 pt-2.5">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#ba1a1a] inline-block" />
-                    Congested segment: <strong>2.5x delay</strong>
-                  </span>
-                  <span>Routes processed: <strong>14 paths</strong></span>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-xl overflow-hidden h-[300px] border border-[#ddc0b9] shadow-inner relative bg-[#e4e2dd]">
-                <iframe
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent('Hazaribagh, Jharkhand')}&z=13&output=embed`}
-                  className="w-full h-full border-0"
-                  loading="lazy"
-                  title="Route Radar Map"
-                  allowFullScreen
-                />
-              </div>
-            )}
-            <Link
-              href="/safety"
-              className="block text-center bg-[#ba1a1a] text-white py-2.5 rounded-xl font-journal-label text-[10px] uppercase tracking-widest hover:opacity-90 transition-opacity"
-            >
-              LAUNCH SECURITY DESK
-            </Link>
-          </div>
+          {/* Cooperative Route Radar Component */}
+          {trip && (
+            <CooperativeRouteRadar
+              tripId={trip.id}
+              groupId={selectedGroupId}
+              currentDayNumber={currentDay}
+              socket={socket}
+            />
+          )}
 
         </div>
       </main>
