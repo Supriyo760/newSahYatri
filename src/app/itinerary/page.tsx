@@ -404,6 +404,11 @@ function ItineraryContent() {
                   <h3 className="font-journal-headline text-4xl italic text-[#1b1c19] capitalize">
                     {trip.destination}: {trip.durationDays}-Day Expedition
                   </h3>
+                  {trip.totalBudget && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#8f361d]/10 text-[#8f361d] font-journal-label text-[10px] uppercase tracking-widest rounded-full border border-[#8f361d]/20 mt-1">
+                      Target Budget: ₹{trip.totalBudget}
+                    </div>
+                  )}
                 </div>
                 {/* Only the creator can regenerate the itinerary */}
                 {isCreator && (
@@ -505,12 +510,9 @@ function ItineraryContent() {
                                   📸 View Real Photos on Google Maps →
                                 </a>
 
-                                {item.estimatedCostPerPerson !== null && (
+                                {item.estimatedDurationMinutes && (
                                   <div className="text-[10px] text-[#89726c] border-t border-[#ddc0b9]/20 pt-2 flex justify-between items-center">
-                                    <span>Estimated: <strong>₹{item.estimatedCostPerPerson}</strong>/person</span>
-                                    {item.estimatedDurationMinutes && (
-                                      <span>Duration: {item.estimatedDurationMinutes}m</span>
-                                    )}
+                                    <span>Duration: {item.estimatedDurationMinutes}m</span>
                                   </div>
                                 )}
                               </div>
@@ -536,6 +538,42 @@ function ItineraryContent() {
                       Discover the authentic local delicacies of {trip.destination}. We have handpicked the best street hot zones, sweet corners, and famous shops where locals eat.
                     </p>
                   </div>
+
+                  {(trip.destination.toLowerCase().includes('bengal') || trip.destination.toLowerCase().includes('bangalore')) && (
+                    <div className="bg-white p-6 rounded-2xl shadow-tactile border border-[#ddc0b9]/40 space-y-4">
+                      <h5 className="font-journal-headline text-xl text-[#1b1c19]">The Taste of Bengaluru</h5>
+                      <p className="text-xs text-[#56423d] leading-relaxed">
+                        Bangalore’s famous food spans legendary South Indian breakfast items, aromatic regional non-veg dishes, and vibrant street food. The city is most celebrated for its iconic Benne (butter) Masala Dosa, flavorful Bisi Bele Bath, and Donne Biryani, which can be enjoyed at historic canteens and bustling night stalls.
+                      </p>
+                      
+                      <div className="space-y-4 pt-2">
+                        <div className="border-l-2 border-[#fdb55c] pl-4">
+                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Iconic South Indian Breakfast</h6>
+                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Benne Dosa:</strong> A crispy, golden, thick crepe generously roasted in butter, typically served with coconut chutney and potato sagu.</p>
+                          <p className="text-[10px] text-[#56423d] italic mb-2">Where to try: Central Tiffin Room (CTR) in Malleswaram or Vidyarthi Bhavan in Basavanagudi.</p>
+                          
+                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Rava Idli & Filter Coffee:</strong> A fluffy, steamed semolina and yogurt cake paired perfectly with a hot, frothy cup of traditional South Indian filter coffee.</p>
+                          <p className="text-[10px] text-[#56423d] italic">Where to try: Mavalli Tiffin Room (MTR).</p>
+                        </div>
+                        
+                        <div className="border-l-2 border-[#8f361d] pl-4">
+                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Hearty Local Meals</h6>
+                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Donne Biryani:</strong> A highly distinct, flavorful biryani cooked in a short-grain rice (jeera samba) and served in traditional leaf cups (donne), packed with robust spices.</p>
+                          <p className="text-[10px] text-[#56423d] italic mb-2">Where to try: Shivaji Military Hotel in Jayanagar or Meghana Foods.</p>
+                          
+                          <p className="text-[11px] text-[#89726c] mb-1"><strong>Bisi Bele Bath:</strong> A quintessential Karnataka comfort food consisting of a spicy, one-pot blend of rice, lentils, and mixed vegetables, served with a dollop of ghee and crispy boondi.</p>
+                          <p className="text-[10px] text-[#56423d] italic">Where to try: Airlines Hotel.</p>
+                        </div>
+
+                        <div className="border-l-2 border-[#435848] pl-4">
+                          <h6 className="font-bold text-[#8f361d] text-xs uppercase tracking-wider mb-1">Street Food & Evening Snacks</h6>
+                          <p className="text-[11px] text-[#89726c] mb-1"><strong>VV Puram Food Street (Thindi Beedi):</strong> An entire street dedicated to local vegetarian street food. Famous highlights include the floating Akki Roti (spiced rice flatbread), crispy Paddu (appam), and Holige (sweet flatbread made of lentils and jaggery).</p>
+                          
+                          <p className="text-[11px] text-[#89726c] mt-2 mb-1"><strong>Shivajinagar Kebabs:</strong> Famous for its bustling Ramadan and late-night food scenes, this area is the go-to spot for tender, charcoal-grilled chicken and mutton kebabs.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {(() => {
@@ -583,9 +621,6 @@ function ItineraryContent() {
                           <div className="space-y-2 border-t border-[#ddc0b9]/20 pt-3">
                             <div className="text-xs text-[#89726c]">
                               <p><strong>Recommended Shop/Zone:</strong> {item.locationName || 'Local street stalls'}</p>
-                              {item.estimatedCostPerPerson !== null && (
-                                <p className="mt-1"><strong>Avg Cost:</strong> ₹{item.estimatedCostPerPerson}/person</p>
-                              )}
                             </div>
                             <a
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ', ' + (item.locationName || ''))}`}
