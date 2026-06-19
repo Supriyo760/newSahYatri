@@ -144,8 +144,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Broadcast location to group without db overhead
-    socket.to(`group_${groupId}`).emit('location_updated', {
+    // Broadcast location to ALL in group (including sender so they see themselves on the map)
+    io.to(`group_${groupId}`).emit('location_updated', {
       userId,
       lat,
       lng,
