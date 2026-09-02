@@ -36,7 +36,7 @@ The easiest way to run the entire stack (Next.js, FastAPI, and PostgreSQL) local
 
 ### Step 1: Clone the repository
 ```bash
-git clone https://github.com/Supriyo760/SahYatri-New.git
+git clone https://github.com/Supriyo760/newSahYatri.git
 cd SahYatri-New
 ```
 
